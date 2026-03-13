@@ -6,11 +6,16 @@ const path = require('path');
 
 function createIpcMainMock() {
   const handlers = new Map();
+  const listeners = new Map();
 
   return {
     handlers,
+    listeners,
     handle: jest.fn((channel, handler) => {
       handlers.set(channel, handler);
+    }),
+    on: jest.fn((channel, listener) => {
+      listeners.set(channel, listener);
     }),
     async invoke(channel, ...args) {
       const handler = handlers.get(channel);
@@ -19,6 +24,14 @@ function createIpcMainMock() {
       }
 
       return handler({}, ...args);
+    },
+    emit(channel, ...args) {
+      const listener = listeners.get(channel);
+      if (!listener) {
+        throw new Error(`No IPC listener registered for ${channel}`);
+      }
+
+      return listener(...args);
     },
   };
 }
