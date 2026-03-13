@@ -4,6 +4,11 @@ import { pushDebug } from './debug.js';
 import { updateBookmarkButtonVisibility } from './bookmarks-ui.js';
 import { updateGithubBridgeIcon } from './github-bridge-ui.js';
 import {
+  buildRadicleDisabledUrl,
+  getRadicleDisplayUrl,
+  resolveProtocolIconType,
+} from './navigation-utils.js';
+import {
   formatBzzUrl,
   formatIpfsUrl,
   formatRadicleUrl,
@@ -82,30 +87,12 @@ let currentPageSecure = false;
 const updateProtocolIcon = () => {
   if (!protocolIcon) return;
 
-  const value = (addressInput?.value || '').toLowerCase();
-  let protocol = 'http'; // Default to HTTP/globe icon
-
-  if (value.startsWith('ens://') || value.endsWith('.eth') || value.endsWith('.box')) {
-    // For ENS names, show the underlying protocol icon
-    const ensName = value.startsWith('ens://') ? value.slice(6).split('/')[0] : value.split('/')[0];
-    const resolvedProtocol = state.ensProtocols.get(ensName);
-    protocol = resolvedProtocol || 'http'; // Fallback to http if not yet resolved
-  } else if (value.startsWith('bzz://')) {
-    protocol = 'swarm';
-  } else if (value.startsWith('ipfs://')) {
-    protocol = 'ipfs';
-  } else if (value.startsWith('ipns://')) {
-    protocol = 'ipns';
-  } else if (value.startsWith('rad://') && state.enableRadicleIntegration) {
-    protocol = 'radicle';
-  } else if (value.startsWith('freedom://')) {
-    // Internal pages - no icon
-    protocol = null;
-  } else if (value.startsWith('https://') || currentPageSecure) {
-    // HTTPS pages without certificate errors
-    protocol = 'https';
-  }
-  // For empty or any other input, use default 'http'
+  const protocol = resolveProtocolIconType({
+    value: addressInput?.value || '',
+    ensProtocols: state.ensProtocols,
+    enableRadicleIntegration: state.enableRadicleIntegration,
+    currentPageSecure,
+  });
 
   if (protocol) {
     protocolIcon.setAttribute('data-protocol', protocol);
@@ -232,15 +219,6 @@ const syncRadBase = (nextBase) => {
     .catch((err) => {
       console.error('Failed to sync rad base', err);
     });
-};
-
-const buildRadicleDisabledUrl = (inputValue = '') => {
-  const errorUrl = new URL('pages/rad-browser.html', window.location.href);
-  errorUrl.searchParams.set('error', 'disabled');
-  if (inputValue) {
-    errorUrl.searchParams.set('input', inputValue);
-  }
-  return errorUrl.toString();
 };
 
 export const loadTarget = (value, displayOverride = null, targetWebview = null) => {
@@ -476,7 +454,7 @@ export const loadTarget = (value, displayOverride = null, targetWebview = null) 
   if (value.trim().toLowerCase().startsWith('rad:') || value.trim().toLowerCase().startsWith('rad://')) {
     if (!state.enableRadicleIntegration) {
       pushDebug(RADICLE_DISABLED_MESSAGE);
-      const disabledUrl = buildRadicleDisabledUrl(value.trim());
+      const disabledUrl = buildRadicleDisabledUrl(window.location.href, value.trim());
       addressInput.value = value.trim();
       navState.pendingNavigationUrl = disabledUrl;
       navState.hasNavigatedDuringCurrentLoad = false;
@@ -676,22 +654,6 @@ export const hardReloadPage = () => {
   const webview = getActiveWebview();
   if (!webview) return;
   retryErrorPageOrReload(webview, true);
-};
-
-// Convert rad-browser.html URL back to rad:// format
-const getRadicleDisplayUrl = (url) => {
-  if (!url || !url.includes('rad-browser.html')) return null;
-  try {
-    const parsed = new URL(url);
-    const rid = parsed.searchParams.get('rid');
-    const path = parsed.searchParams.get('path') || '';
-    if (rid) {
-      return `rad://${rid}${path}`;
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return null;
 };
 
 const handleNavigationEvent = (event) => {
