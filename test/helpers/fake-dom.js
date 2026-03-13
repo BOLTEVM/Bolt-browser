@@ -161,6 +161,11 @@ class FakeElement {
     this[name] = value;
   }
 
+  removeAttribute(name) {
+    delete this.attributes[name];
+    delete this[name];
+  }
+
   getAttribute(name) {
     return this.attributes[name];
   }
