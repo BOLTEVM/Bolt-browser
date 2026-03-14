@@ -46,8 +46,11 @@ function normalizeBatch(batch) {
 
   const usageRaw = typeof batch.usage === 'number' ? batch.usage : 0;
 
+  const rawId = batch.batchID;
+  const batchId = rawId && typeof rawId.toHex === 'function' ? rawId.toHex() : String(rawId || '');
+
   return {
-    batchId: batch.batchID || '',
+    batchId,
     usable: batch.usable === true,
     isMutable: batch.immutableFlag === false,
     sizeBytes,
@@ -90,7 +93,7 @@ async function buyStorage(sizeGB, durationDays) {
   const batchId = await bee.buyStorage(
     Size.fromGigabytes(sizeGB),
     Duration.fromDays(durationDays),
-    undefined, // PostageBatchOptions — use defaults
+    { waitForUsable: false }, // Don't block — renderer polls for usability
     { timeout: BUY_TIMEOUT_MS } // BeeRequestOptions — HTTP timeout
   );
 
@@ -131,6 +134,13 @@ function registerSwarmIpc() {
       if (!isPositiveNumber(sizeGB) || !isPositiveNumber(durationDays)) {
         return { success: false, error: 'Size and duration must be positive numbers' };
       }
+
+      // Pre-check: verify xBZZ balance covers the estimated cost
+      const insufficientError = await checkBzzSufficiency(sizeGB, durationDays);
+      if (insufficientError) {
+        return { success: false, error: insufficientError };
+      }
+
       const batchId = await buyStorage(sizeGB, durationDays);
       return { success: true, batchId };
     } catch (err) {
@@ -140,6 +150,54 @@ function registerSwarmIpc() {
   });
 
   log.info('[StampService] IPC handlers registered');
+}
+
+/**
+ * Check if the Bee wallet has enough xBZZ for the given storage purchase.
+ * Returns an error string if insufficient, or null if OK.
+ */
+async function checkBzzSufficiency(sizeGB, durationDays) {
+  try {
+    const bee = getBee();
+    const { getBeeApiUrl } = require('../service-registry');
+    const http = require('http');
+
+    // Get cost estimate
+    const cost = await bee.getStorageCost(
+      Size.fromGigabytes(sizeGB),
+      Duration.fromDays(durationDays)
+    );
+    const costStr = cost.toSignificantDigits(4);
+
+    // Get wallet balance from Bee API
+    const walletUrl = `${getBeeApiUrl()}/wallet`;
+    const walletData = await new Promise((resolve, reject) => {
+      http.get(walletUrl, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => {
+          try { resolve(JSON.parse(body)); } catch { resolve(null); }
+        });
+        res.on('error', reject);
+      }).on('error', reject);
+    });
+
+    if (!walletData?.bzzBalance) return null; // Can't check — let Bee handle it
+
+    const bzzBalance = BigInt(walletData.bzzBalance);
+    // Cost is in BZZ (16 decimals). Convert the significant-digits string to raw PLUR.
+    const costNum = parseFloat(costStr);
+    const costPlur = BigInt(Math.ceil(costNum * 1e16));
+
+    if (costPlur > 0n && bzzBalance < costPlur) {
+      return `Insufficient xBZZ. Estimated cost is ~${costStr} xBZZ.`;
+    }
+
+    return null;
+  } catch (err) {
+    log.error('[StampService] Balance pre-check failed:', err.message);
+    return null; // Non-fatal — let the purchase attempt proceed
+  }
 }
 
 module.exports = {

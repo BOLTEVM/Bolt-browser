@@ -50,9 +50,13 @@ async function invokeIpc(channel, ...args) {
 }
 
 // Helper to create batch objects that mimic bee-js class instances
+function makeBatchId(hex) {
+  return { toHex: () => hex, toString: () => hex };
+}
+
 function makeBatch(overrides = {}) {
   return {
-    batchID: 'abc123',
+    batchID: makeBatchId('abc123'),
     usable: true,
     immutableFlag: true,
     size: { toBytes: () => 5368709120 },
@@ -184,14 +188,17 @@ describe('stamp-service', () => {
       expect(typeof result.batchId).toBe('string');
     });
 
-    test('swarm:buy-storage passes timeout as requestOptions (4th arg)', async () => {
+    test('swarm:buy-storage passes waitForUsable:false and timeout', async () => {
       mockBuyStorage.mockResolvedValue({ toHex: () => 'abc' });
+      mockGetStorageCost.mockResolvedValue({
+        toSignificantDigits: () => '0.001',
+      });
 
       await invokeIpc('swarm:buy-storage', 1, 30);
       expect(mockBuyStorage).toHaveBeenCalledWith(
         expect.anything(), // Size
         expect.anything(), // Duration
-        undefined, // PostageBatchOptions
+        expect.objectContaining({ waitForUsable: false }), // PostageBatchOptions
         expect.objectContaining({ timeout: 300000 }) // BeeRequestOptions
       );
     });
