@@ -10,13 +10,13 @@ jest.mock('electron', () => ({
 }));
 
 // Mock bee-js
-const mockGetAllPostageBatch = jest.fn();
+const mockGetPostageBatches = jest.fn();
 const mockGetStorageCost = jest.fn();
 const mockBuyStorage = jest.fn();
 
 jest.mock('@ethersphere/bee-js', () => ({
   Bee: jest.fn().mockImplementation(() => ({
-    getAllPostageBatch: mockGetAllPostageBatch,
+    getPostageBatches: mockGetPostageBatches,
     getStorageCost: mockGetStorageCost,
     buyStorage: mockBuyStorage,
   })),
@@ -124,7 +124,7 @@ describe('stamp-service', () => {
     });
 
     test('swarm:get-stamps returns normalized batches', async () => {
-      mockGetAllPostageBatch.mockResolvedValue([makeBatch()]);
+      mockGetPostageBatches.mockResolvedValue([makeBatch()]);
 
       const result = await invokeIpc('swarm:get-stamps');
       expect(result.success).toBe(true);
@@ -141,7 +141,7 @@ describe('stamp-service', () => {
     });
 
     test('swarm:get-stamps handles errors', async () => {
-      mockGetAllPostageBatch.mockRejectedValue(new Error('Bee not reachable'));
+      mockGetPostageBatches.mockRejectedValue(new Error('Bee not reachable'));
 
       const result = await invokeIpc('swarm:get-stamps');
       expect(result.success).toBe(false);
@@ -175,12 +175,25 @@ describe('stamp-service', () => {
       expect(result.success).toBe(false);
     });
 
-    test('swarm:buy-storage returns batch ID on success', async () => {
-      mockBuyStorage.mockResolvedValue('new-batch-id-hex');
+    test('swarm:buy-storage returns batch ID hex string on success', async () => {
+      mockBuyStorage.mockResolvedValue({ toHex: () => 'abcdef1234567890' });
 
       const result = await invokeIpc('swarm:buy-storage', 1, 30);
       expect(result.success).toBe(true);
-      expect(result.batchId).toBe('new-batch-id-hex');
+      expect(result.batchId).toBe('abcdef1234567890');
+      expect(typeof result.batchId).toBe('string');
+    });
+
+    test('swarm:buy-storage passes timeout as requestOptions (4th arg)', async () => {
+      mockBuyStorage.mockResolvedValue({ toHex: () => 'abc' });
+
+      await invokeIpc('swarm:buy-storage', 1, 30);
+      expect(mockBuyStorage).toHaveBeenCalledWith(
+        expect.anything(), // Size
+        expect.anything(), // Duration
+        undefined, // PostageBatchOptions
+        expect.objectContaining({ timeout: 300000 }) // BeeRequestOptions
+      );
     });
 
     test('swarm:buy-storage handles purchase failure', async () => {

@@ -62,7 +62,7 @@ function normalizeBatch(batch) {
  */
 async function getStamps() {
   const bee = getBee();
-  const batches = await bee.getAllPostageBatch();
+  const batches = await bee.getPostageBatches();
   return batches.map(normalizeBatch);
 }
 
@@ -90,11 +90,13 @@ async function buyStorage(sizeGB, durationDays) {
   const batchId = await bee.buyStorage(
     Size.fromGigabytes(sizeGB),
     Duration.fromDays(durationDays),
-    { timeout: BUY_TIMEOUT_MS }
+    undefined, // PostageBatchOptions — use defaults
+    { timeout: BUY_TIMEOUT_MS } // BeeRequestOptions — HTTP timeout
   );
 
-  log.info(`[StampService] Purchased batch ${batchId} (${sizeGB} GB, ${durationDays} days)`);
-  return batchId;
+  const batchIdHex = typeof batchId?.toHex === 'function' ? batchId.toHex() : String(batchId);
+  log.info(`[StampService] Purchased batch ${batchIdHex} (${sizeGB} GB, ${durationDays} days)`);
+  return batchIdHex;
 }
 
 /**
