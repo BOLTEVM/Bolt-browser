@@ -35,6 +35,15 @@ let stepStampsBtn;
 let pollInterval = null;
 let cachedBeeWalletAddress = null;
 
+/**
+ * Return the Bee wallet address, preferring the canonical identity-derived
+ * address over the cached Bee API value. The cache is only a fallback for
+ * when identity data hasn't loaded yet.
+ */
+function getBeeWalletAddress() {
+  return walletState.fullAddresses.swarm || cachedBeeWalletAddress;
+}
+
 export function initPublishSetup() {
   publishSetupScreen = document.getElementById('sidebar-publish-setup');
   publishSetupBackBtn = document.getElementById('publish-setup-back');
@@ -79,6 +88,7 @@ export function openPublishSetup() {
 
 export function closePublishSetup() {
   stopPolling();
+  cachedBeeWalletAddress = null;
   publishSetupScreen?.classList.add('hidden');
   walletState.identityView?.classList.remove('hidden');
 }
@@ -105,6 +115,23 @@ async function refreshChecklist() {
 }
 
 async function evaluateSteps() {
+  const beeStatus = state.currentBeeStatus;
+
+  // If Bee isn't running, return a node-level blocked state
+  if (beeStatus !== 'running') {
+    return {
+      nodeState: beeStatus === 'starting' ? 'starting' : beeStatus === 'stopping' ? 'stopping' : beeStatus === 'error' ? 'error' : 'stopped',
+      hasXdai: false,
+      beeWalletAddress: getBeeWalletAddress(),
+      isLightOrFull: false,
+      chequebookDeployed: false,
+      stampsSynced: false,
+      hasXbzz: false,
+      hasUsableStamps: false,
+      syncProgress: null,
+    };
+  }
+
   // Tier 1 queries (always available when Bee is running)
   let nodeResult, addressesResult, chequebookAddrResult;
   try {
@@ -114,16 +141,16 @@ async function evaluateSteps() {
       fetchBeeJson('/chequebook/address'),
     ]);
   } catch {
-    // Bee API unreachable — return empty state, all steps pending
     return {
+      nodeState: 'unreachable',
       hasXdai: false,
-      xdaiBalance: 0n,
-      beeWalletAddress: cachedBeeWalletAddress,
+      beeWalletAddress: getBeeWalletAddress(),
       isLightOrFull: false,
       chequebookDeployed: false,
+      stampsSynced: false,
       hasXbzz: false,
       hasUsableStamps: false,
-      tier2Available: false,
+      syncProgress: null,
     };
   }
 
@@ -141,7 +168,7 @@ async function evaluateSteps() {
   // Balance check via existing wallet infrastructure (main process IPC)
   let hasXdai = false;
   let hasXbzzFromWallet = false;
-  const beeAddr = cachedBeeWalletAddress || walletState.fullAddresses.swarm;
+  const beeAddr = getBeeWalletAddress();
   if (beeAddr && window.wallet?.getBalances) {
     try {
       const result = await window.wallet.getBalances(beeAddr);
@@ -210,8 +237,9 @@ async function evaluateSteps() {
   }
 
   return {
+    nodeState: 'running',
     hasXdai,
-    beeWalletAddress: cachedBeeWalletAddress,
+    beeWalletAddress: getBeeWalletAddress(),
     isLightOrFull,
     chequebookDeployed,
     stampsSynced,
@@ -222,6 +250,34 @@ async function evaluateSteps() {
 }
 
 function renderSteps(steps) {
+  // If Bee isn't running, show all steps as blocked
+  if (steps.nodeState !== 'running') {
+    const blockedDetail = {
+      stopped: 'Start the Swarm node to continue.',
+      starting: 'Swarm node is starting\u2026',
+      stopping: 'Swarm node is stopping\u2026',
+      error: 'Swarm node encountered an error.',
+      unreachable: 'Cannot reach the Swarm node.',
+    }[steps.nodeState] || 'Swarm node is not available.';
+
+    setStepStatus(stepFundXdai, 'pending');
+    setStepStatus(stepLightMode, 'pending');
+    setStepStatus(stepChequebook, 'pending');
+    setStepStatus(stepFundXbzz, 'pending');
+    setStepStatus(stepStamps, 'pending');
+    toggleEl(stepFundXdaiBtn, false);
+    toggleEl(stepLightModeBtn, false);
+    toggleEl(stepChequebookWaiting, false);
+    toggleEl(stepFundXbzzBtn, false);
+    toggleEl(stepStampsBtn, false);
+
+    if (stepFundXdaiMeta) {
+      stepFundXdaiMeta.textContent = blockedDetail;
+      stepFundXdaiMeta.classList.remove('hidden');
+    }
+    return;
+  }
+
   // Step 1: Fund xDAI
   const step1Complete = steps.hasXdai || steps.chequebookDeployed;
   const step1Status = step1Complete ? 'complete' : 'active';
@@ -308,7 +364,7 @@ function toggleEl(el, visible) {
 // ============================================
 
 function handleFundXdai() {
-  const recipient = cachedBeeWalletAddress || walletState.fullAddresses.swarm;
+  const recipient = getBeeWalletAddress();
   if (!recipient) {
     alert('Bee wallet address is not available yet.');
     return;
@@ -334,9 +390,9 @@ function handleFundXdai() {
 
 async function handleSwitchToLightMode() {
   try {
-    const settings = await window.electronAPI.getSettings();
+    const settings = await window.electronAPI?.getSettings?.();
     const nextSettings = { ...settings, beeNodeMode: 'light' };
-    const success = await window.electronAPI.saveSettings(nextSettings);
+    const success = await window.electronAPI?.saveSettings?.(nextSettings);
 
     if (!success) {
       throw new Error('Failed to save settings');
@@ -355,7 +411,7 @@ async function handleSwitchToLightMode() {
 }
 
 function handleFundXbzz() {
-  const recipient = cachedBeeWalletAddress || walletState.fullAddresses.swarm;
+  const recipient = getBeeWalletAddress();
   if (!recipient) {
     alert('Bee wallet address is not available yet.');
     return;
@@ -379,7 +435,7 @@ function handleBuyStamps() {
 // ============================================
 
 async function clearBeeWalletCache() {
-  const addr = cachedBeeWalletAddress || walletState.fullAddresses.swarm;
+  const addr = getBeeWalletAddress();
   if (addr && window.wallet?.clearBalanceCache) {
     try {
       await window.wallet.clearBalanceCache(addr);

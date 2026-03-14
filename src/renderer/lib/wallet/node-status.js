@@ -308,7 +308,8 @@ function updateSwarmSetupCta() {
   });
 
   const inspectOnly = state.registry?.bee?.mode === 'reused';
-  const showCta = publishState.key !== 'ready' && !inspectOnly;
+  const beeAvailable = state.currentBeeStatus === 'running' || state.currentBeeStatus === 'starting';
+  const showCta = publishState.key !== 'ready' && !inspectOnly && beeAvailable;
 
   if (swarmSetupCta) {
     swarmSetupCta.classList.toggle('hidden', !showCta);
