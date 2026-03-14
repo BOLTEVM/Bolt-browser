@@ -2,7 +2,8 @@
  * Stamp Manager Module
  *
  * Sidebar sub-screen for purchasing and managing Swarm postage batches.
- * Handles the purchase state machine: idle → estimating → ready_to_buy →
+ * Shows existing batches when available, or the purchase form when empty.
+ * Purchase state machine: idle → estimating → ready_to_buy →
  * purchasing → waiting_for_usable → usable.
  */
 
@@ -19,7 +20,6 @@ const DEFAULT_PRESET_INDEX = 1;
 const USABLE_POLL_MS = 5000;
 const USABLE_TIMEOUT_MS = 120000;
 
-// Purchase state machine
 const STATE = {
   IDLE: 'idle',
   ESTIMATING: 'estimating',
@@ -33,6 +33,10 @@ const STATE = {
 // DOM references
 let stampManagerScreen;
 let stampManagerBackBtn;
+let listView;
+let batchListContainer;
+let buyAnotherBtn;
+let purchaseView;
 let presetContainer;
 let costDisplay;
 let costValue;
@@ -54,6 +58,10 @@ let estimationId = 0;
 export function initStampManager() {
   stampManagerScreen = document.getElementById('sidebar-stamp-manager');
   stampManagerBackBtn = document.getElementById('stamp-manager-back');
+  listView = document.getElementById('stamp-list-view');
+  batchListContainer = document.getElementById('stamp-batch-list');
+  buyAnotherBtn = document.getElementById('stamp-buy-another-btn');
+  purchaseView = document.getElementById('stamp-purchase-view');
   presetContainer = document.getElementById('stamp-presets');
   costDisplay = document.getElementById('stamp-cost-display');
   costValue = document.getElementById('stamp-cost-value');
@@ -69,6 +77,7 @@ export function initStampManager() {
   stampManagerBackBtn?.addEventListener('click', () => closeStampManager());
   purchaseBtn?.addEventListener('click', () => handlePurchase());
   retryBtn?.addEventListener('click', () => transitionTo(STATE.IDLE));
+  buyAnotherBtn?.addEventListener('click', () => showPurchaseView());
 
   buildPresetButtons();
 }
@@ -79,8 +88,7 @@ export function openStampManager() {
   isOpen = true;
   pendingBatchId = null;
 
-  selectPreset(DEFAULT_PRESET_INDEX);
-  refreshBalance();
+  loadBatchList();
 }
 
 export function closeStampManager() {
@@ -89,6 +97,137 @@ export function closeStampManager() {
   stampManagerScreen?.classList.add('hidden');
   walletState.identityView?.classList.remove('hidden');
 }
+
+// ============================================
+// View switching
+// ============================================
+
+function showListView() {
+  listView?.classList.remove('hidden');
+  purchaseView?.classList.add('hidden');
+}
+
+function showPurchaseView() {
+  listView?.classList.add('hidden');
+  purchaseView?.classList.remove('hidden');
+
+  transitionTo(STATE.IDLE);
+  selectPreset(DEFAULT_PRESET_INDEX);
+  refreshBalance();
+}
+
+async function loadBatchList() {
+  try {
+    const result = await window.swarmNode?.getStamps();
+    if (!isOpen) return;
+
+    if (result?.success && result.stamps.length > 0) {
+      renderBatchList(result.stamps);
+      showListView();
+    } else {
+      showPurchaseView();
+    }
+  } catch {
+    showPurchaseView();
+  }
+}
+
+// ============================================
+// Batch list rendering
+// ============================================
+
+function renderBatchList(stamps) {
+  if (!batchListContainer) return;
+
+  batchListContainer.innerHTML = '';
+
+  stamps.forEach((batch) => {
+    const card = document.createElement('div');
+    card.className = 'stamp-batch-card';
+    if (!batch.usable) card.classList.add('unusable');
+
+    // Status badge
+    const statusBadge = document.createElement('div');
+    statusBadge.className = 'stamp-batch-status';
+    statusBadge.dataset.status = batch.usable ? 'usable' : 'unusable';
+    statusBadge.textContent = batch.usable ? 'Usable' : 'Not usable';
+    card.appendChild(statusBadge);
+
+    // Size info
+    const sizeRow = document.createElement('div');
+    sizeRow.className = 'stamp-batch-row';
+    const sizeLabel = document.createElement('span');
+    sizeLabel.className = 'stamp-batch-label';
+    sizeLabel.textContent = 'Size';
+    const sizeValue = document.createElement('span');
+    sizeValue.className = 'stamp-batch-value';
+    sizeValue.textContent = formatSize(batch.sizeBytes);
+    sizeRow.appendChild(sizeLabel);
+    sizeRow.appendChild(sizeValue);
+    card.appendChild(sizeRow);
+
+    // Usage
+    const usageRow = document.createElement('div');
+    usageRow.className = 'stamp-batch-row';
+    const usageLabel = document.createElement('span');
+    usageLabel.className = 'stamp-batch-label';
+    usageLabel.textContent = 'Used';
+    const usageValue = document.createElement('span');
+    usageValue.className = 'stamp-batch-value';
+    usageValue.textContent = `${batch.usagePercent}%`;
+    usageRow.appendChild(usageLabel);
+    usageRow.appendChild(usageValue);
+    card.appendChild(usageRow);
+
+    // TTL
+    const ttlRow = document.createElement('div');
+    ttlRow.className = 'stamp-batch-row';
+    const ttlLabel = document.createElement('span');
+    ttlLabel.className = 'stamp-batch-label';
+    ttlLabel.textContent = 'Time remaining';
+    const ttlValue = document.createElement('span');
+    ttlValue.className = 'stamp-batch-value';
+    ttlValue.textContent = formatDuration(batch.ttlSeconds);
+    ttlRow.appendChild(ttlLabel);
+    ttlRow.appendChild(ttlValue);
+    card.appendChild(ttlRow);
+
+    // Batch ID
+    const idRow = document.createElement('div');
+    idRow.className = 'stamp-batch-id';
+    idRow.textContent = batch.batchId
+      ? `${batch.batchId.slice(0, 8)}\u2026${batch.batchId.slice(-8)}`
+      : '--';
+    idRow.title = batch.batchId || '';
+    card.appendChild(idRow);
+
+    batchListContainer.appendChild(card);
+  });
+}
+
+function formatSize(bytes) {
+  if (!bytes || bytes <= 0) return '--';
+  const gb = bytes / (1024 * 1024 * 1024);
+  if (gb >= 1) return `${gb.toFixed(1)} GB`;
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(0)} MB`;
+  const kb = bytes / 1024;
+  return `${kb.toFixed(0)} KB`;
+}
+
+function formatDuration(seconds) {
+  if (!seconds || seconds <= 0) return '--';
+  const days = Math.floor(seconds / 86400);
+  if (days > 0) return `${days} day${days === 1 ? '' : 's'}`;
+  const hours = Math.floor(seconds / 3600);
+  if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'}`;
+  const mins = Math.floor(seconds / 60);
+  return `${mins} minute${mins === 1 ? '' : 's'}`;
+}
+
+// ============================================
+// Purchase form
+// ============================================
 
 function buildPresetButtons() {
   if (!presetContainer) return;
@@ -141,7 +280,6 @@ async function estimateCost() {
       selectedPreset.durationDays
     );
 
-    // Discard stale response if user switched presets during the await
     if (thisEstimation !== estimationId || !isOpen) return;
 
     if (!result?.success) {
@@ -202,6 +340,10 @@ async function handlePurchase() {
   }
 }
 
+// ============================================
+// Usability polling
+// ============================================
+
 function startUsablePoll() {
   stopUsablePoll();
   usablePollStart = Date.now();
@@ -237,6 +379,10 @@ async function pollForUsable() {
 
     if (usable) {
       transitionTo(STATE.USABLE);
+      // Refresh the batch list so the user can see their new batch
+      setTimeout(() => {
+        if (isOpen) loadBatchList();
+      }, 2000);
       return;
     }
   } catch {
@@ -252,6 +398,10 @@ function scheduleNextPoll() {
   }
 }
 
+// ============================================
+// State machine
+// ============================================
+
 function transitionTo(newState, errorMessage) {
   currentState = newState;
   renderState(errorMessage);
@@ -266,13 +416,11 @@ function renderState(errorMessage) {
   const isUsable = currentState === STATE.USABLE;
   const isFailed = currentState === STATE.FAILED;
 
-  // Presets: clickable in idle/estimating/ready/failed
   const presetsEnabled = isIdle || isEstimating || isReady || isFailed;
   presetContainer?.querySelectorAll('.stamp-preset-btn').forEach((btn) => {
     btn.disabled = !presetsEnabled;
   });
 
-  // Cost display
   if (costDisplay) {
     costDisplay.classList.toggle('hidden', isIdle);
   }
@@ -283,13 +431,11 @@ function renderState(errorMessage) {
     costValue.classList.toggle('hidden', isEstimating || isIdle);
   }
 
-  // Purchase button
   if (purchaseBtn) {
     purchaseBtn.disabled = !isReady;
     purchaseBtn.classList.toggle('hidden', isPurchasing || isWaiting || isUsable);
   }
 
-  // Status message
   if (purchaseStatus) {
     if (isPurchasing) {
       purchaseStatus.textContent = 'Purchasing storage\u2026';
@@ -298,14 +444,13 @@ function renderState(errorMessage) {
       purchaseStatus.textContent = 'Batch purchased, waiting for network confirmation\u2026';
       purchaseStatus.classList.remove('hidden');
     } else if (isUsable) {
-      purchaseStatus.textContent = 'Storage batch is ready. You can now publish on Swarm.';
+      purchaseStatus.textContent = 'Storage batch is ready.';
       purchaseStatus.classList.remove('hidden');
     } else {
       purchaseStatus.classList.add('hidden');
     }
   }
 
-  // Error
   if (purchaseError) {
     if (isFailed && errorMessage) {
       purchaseError.textContent = errorMessage;

@@ -1846,6 +1846,93 @@
    Stamp Manager
    ============================================ */
 
+/* Batch list */
+.stamp-batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stamp-batch-card {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.stamp-batch-card.unusable {
+  opacity: 0.6;
+}
+
+.stamp-batch-status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.stamp-batch-status[data-status="usable"] {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+}
+
+.stamp-batch-status[data-status="unusable"] {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+}
+
+.stamp-batch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.stamp-batch-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.stamp-batch-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.stamp-batch-id {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--muted);
+  font-family: var(--font-mono, monospace);
+  cursor: default;
+}
+
+.stamp-buy-another-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  background: rgba(26, 115, 232, 0.08);
+  border: 1px solid rgba(26, 115, 232, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.stamp-buy-another-btn:hover {
+  background: rgba(26, 115, 232, 0.15);
+}
+
+[data-theme="light"] .stamp-batch-card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Purchase form */
 .stamp-manager-intro {
   margin: 0 0 16px 0;
   font-size: 13px;

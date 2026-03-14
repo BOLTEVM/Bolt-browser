@@ -1801,28 +1801,39 @@
               </div>
 
               <div class="subscreen-content">
-                <p class="stamp-manager-intro">Purchase a storage batch to publish content on Swarm.</p>
-
-                <div class="stamp-presets" id="stamp-presets">
-                  <!-- Preset buttons inserted dynamically -->
+                <!-- Batch list view -->
+                <div id="stamp-list-view">
+                  <div class="stamp-batch-list" id="stamp-batch-list">
+                    <!-- Batch cards inserted dynamically -->
+                  </div>
+                  <button type="button" class="stamp-buy-another-btn" id="stamp-buy-another-btn">Buy Another Batch</button>
                 </div>
 
-                <div class="stamp-cost-section hidden" id="stamp-cost-display">
-                  <div class="stamp-cost-row">
-                    <span class="stamp-cost-label">Estimated cost</span>
-                    <span class="stamp-cost-spinner hidden" id="stamp-cost-spinner">Estimating&hellip;</span>
-                    <span class="stamp-cost-value hidden" id="stamp-cost-value">--</span>
+                <!-- Purchase form view -->
+                <div id="stamp-purchase-view" class="hidden">
+                  <p class="stamp-manager-intro" id="stamp-purchase-intro">Purchase a storage batch to publish content on Swarm.</p>
+
+                  <div class="stamp-presets" id="stamp-presets">
+                    <!-- Preset buttons inserted dynamically -->
                   </div>
-                  <div class="stamp-balance-row">
-                    <span class="stamp-balance" id="stamp-balance">Balance: --</span>
+
+                  <div class="stamp-cost-section hidden" id="stamp-cost-display">
+                    <div class="stamp-cost-row">
+                      <span class="stamp-cost-label">Estimated cost</span>
+                      <span class="stamp-cost-spinner hidden" id="stamp-cost-spinner">Estimating&hellip;</span>
+                      <span class="stamp-cost-value hidden" id="stamp-cost-value">--</span>
+                    </div>
+                    <div class="stamp-balance-row">
+                      <span class="stamp-balance" id="stamp-balance">Balance: --</span>
+                    </div>
                   </div>
+
+                  <button type="button" class="stamp-purchase-btn" id="stamp-purchase-btn" disabled>Buy Storage</button>
+
+                  <div class="stamp-purchase-status hidden" id="stamp-purchase-status"></div>
+                  <div class="stamp-purchase-error hidden" id="stamp-purchase-error"></div>
+                  <button type="button" class="stamp-retry-btn hidden" id="stamp-retry-btn">Try Again</button>
                 </div>
-
-                <button type="button" class="stamp-purchase-btn" id="stamp-purchase-btn" disabled>Buy Storage</button>
-
-                <div class="stamp-purchase-status hidden" id="stamp-purchase-status"></div>
-                <div class="stamp-purchase-error hidden" id="stamp-purchase-error"></div>
-                <button type="button" class="stamp-retry-btn hidden" id="stamp-retry-btn">Try Again</button>
               </div>
             </div>
           </div>
