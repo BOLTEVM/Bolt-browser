@@ -22,7 +22,10 @@ let swarmModeBadge;
 let swarmStatusBadge;
 let swarmBalanceXdaiEl;
 let swarmBalanceXbzzEl;
-let swarmBalancesGroup;
+let swarmWalletGroup;
+let swarmChequebookGroup;
+let swarmChequebookAddress;
+let swarmChequebookBalance;
 let swarmSetupCta;
 let swarmSetupBtn;
 let swarmSetupBtnLabel;
@@ -49,7 +52,10 @@ export function initNodeStatus() {
   swarmStatusBadge = document.getElementById('swarm-status-badge');
   swarmBalanceXdaiEl = document.getElementById('swarm-balance-xdai');
   swarmBalanceXbzzEl = document.getElementById('swarm-balance-xbzz');
-  swarmBalancesGroup = document.getElementById('swarm-balances-group');
+  swarmWalletGroup = document.getElementById('swarm-wallet-group');
+  swarmChequebookGroup = document.getElementById('swarm-chequebook-group');
+  swarmChequebookAddress = document.getElementById('swarm-chequebook-address');
+  swarmChequebookBalance = document.getElementById('swarm-chequebook-balance');
   swarmSetupCta = document.getElementById('swarm-setup-cta');
   swarmSetupBtn = document.getElementById('swarm-setup-btn');
   swarmSetupBtnLabel = document.getElementById('swarm-setup-btn-label');
@@ -252,11 +258,13 @@ async function refreshSwarmRuntimeInfo() {
   }
 
   try {
-    const [nodeResult, readinessResult, walletResult, stampsResult] = await Promise.all([
+    const [nodeResult, readinessResult, walletResult, stampsResult, chequebookAddrResult, chequebookBalResult] = await Promise.all([
       fetchBeeJson('/node'),
       fetchBeeJson('/readiness'),
       fetchBeeJson('/wallet'),
       fetchBeeJson('/stamps'),
+      fetchBeeJson('/chequebook/address'),
+      fetchBeeJson('/chequebook/balance'),
     ]);
 
     const nodeInfo = nodeResult.ok ? nodeResult.data : null;
@@ -276,6 +284,8 @@ async function refreshSwarmRuntimeInfo() {
     if (walletResult.ok && walletResult.data) {
       updateSwarmWalletBalances(walletResult.data);
     }
+
+    updateSwarmChequebook(chequebookAddrResult, chequebookBalResult);
   } catch (err) {
     console.error('[WalletUI] Failed to refresh Swarm runtime info:', err);
     swarmRuntimeInfo = createEmptySwarmRuntimeInfo();
@@ -294,7 +304,8 @@ function updateSwarmSectionVisibility() {
   const displayMode = normalizeSwarmMode(getDisplayedSwarmMode());
   const isUltraLight = displayMode === 'ultraLight';
 
-  swarmBalancesGroup?.classList.toggle('hidden', isUltraLight);
+  swarmWalletGroup?.classList.toggle('hidden', isUltraLight);
+  // Chequebook visibility is handled by updateSwarmChequebook (only shown when deployed)
 }
 
 let currentCtaTarget = 'setup'; // 'setup' or 'storage'
@@ -360,6 +371,34 @@ function updateSwarmWalletBalances(walletInfo) {
 
   if (swarmBalanceXbzzEl) {
     swarmBalanceXbzzEl.textContent = formatRawTokenBalance(walletInfo?.bzzBalance, 16);
+  }
+}
+
+function updateSwarmChequebook(addrResult, balResult) {
+  const addr = addrResult?.ok ? addrResult.data?.chequebookAddress : null;
+  const isDeployed = addr && addr !== '0x0000000000000000000000000000000000000000' && addr.length > 2;
+
+  if (swarmChequebookGroup) {
+    swarmChequebookGroup.classList.toggle('hidden', !isDeployed);
+  }
+
+  if (!isDeployed) return;
+
+  if (swarmChequebookAddress) {
+    const short = addr.length > 12
+      ? `${addr.slice(0, 6)}\u2026${addr.slice(-4)}`
+      : addr;
+    swarmChequebookAddress.textContent = short;
+    swarmChequebookAddress.title = addr;
+  }
+
+  if (swarmChequebookBalance && balResult?.ok && balResult.data) {
+    // availableBalance is in PLUR (raw xBZZ with 16 decimals)
+    const available = balResult.data.availableBalance;
+    swarmChequebookBalance.textContent = formatRawTokenBalance(
+      typeof available === 'string' ? available : String(available || '0'),
+      16
+    );
   }
 }
 

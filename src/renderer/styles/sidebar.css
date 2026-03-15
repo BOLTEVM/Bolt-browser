@@ -1711,6 +1711,14 @@
   font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
 }
 
+.node-info-address {
+  display: block;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
 /* Node balance rows */
 .node-balance-row {
   display: flex;
