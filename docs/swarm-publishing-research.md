@@ -1601,16 +1601,29 @@ End-to-end verified (2026-03-15):
 - Folder upload with index.html → loads as website via bzz://
 - Publish history persists across page reloads, shows correct status
 
-### Next: Chequebook funding
+Chequebook funding — DONE:
+- ~~`swarm:get-chequebook-balance` and `swarm:deposit-chequebook` IPC handlers~~ — done
+- ~~Auto-deposit 0.1 xBZZ into chequebook on stamp purchase when chequebook is empty~~ — done
+- ~~Chequebook address and balance displayed in node card (separate section from Node Wallet)~~ — done
+- ~~Chequebook deposit sub-screen with presets (0.1, 0.5, 1.0 xBZZ) and xBZZ balance pre-check~~ — done
+- ~~Clickable balance rows in node card: xDAI → send/receive, xBZZ → send/swap, chequebook → deposit screen~~ — done
+- ~~Shared funding helpers extracted to `funding-actions.js` (`topUpXdai`, `topUpXbzz`)~~ — done
+- ~~Shared chain constants (`GNOSIS_CHAIN_ID`, `XDAI_TOKEN_KEY`, `XBZZ_TOKEN_KEY`) exported from `funding-actions.js`~~ — done
+- ~~Copy-to-clipboard with visual feedback on both wallet and chequebook addresses~~ — done
 
-See "Chequebook funding vs postage stamps" section above. Must be addressed before shipping. Concrete tasks:
+Startup UX — DONE:
+- ~~Startup burst polling: 2s interval for first 30s after Bee becomes running, then 15s steady state~~ — done
+- ~~CTA shows "Checking node status..." (disabled) while publish state is initializing~~ — done
+- ~~CTA only appears when state is fully resolved (not during starting or initializing)~~ — done
+- ~~Null guard on CTA click handler during convergence~~ — done
 
-1. Add `swarm:deposit-chequebook` and `swarm:get-chequebook-balance` IPC handlers
-2. Either add a checklist step or auto-deposit during stamp purchase
-3. Show chequebook balance in stamp manager
-4. Surface "chequebook out of funds" state to user
+### Known limitations
 
-### Later: Milestones 3-5
+- **RPC rate limiting during large uploads**: public Gnosis RPC (`rpc.gnosischain.com`) returns 429/timeout under heavy concurrent cheque payment load. Uploads succeed but payments are deferred. A private RPC would fix this. See "RPC rate limiting" section above.
+- **xDAI in Bee wallet appears idle**: the xDAI is a gas reserve for on-chain Swarm operations (stamp purchases, chequebook deposits, extensions). Gas on Gnosis is very cheap so it depletes slowly, but it IS being used.
+- **Bee wallet not in wallet dropdown**: the Bee wallet is a system identity with a different derivation path, not suitable for dApp connections or user spending. It's displayed in the Nodes tab instead.
+
+### Next: Milestones 3-5
 
 - Milestone 3: `window.swarm` provider for third-party pages (depends on Milestone 2)
 - Milestone 4: Mutable publishing and feed identities (depends on Milestone 3)
@@ -1640,6 +1653,8 @@ See "Chequebook funding vs postage stamps" section above. Must be addressed befo
 - `src/renderer/lib/wallet/bee-api.js` — shared fetchBeeJson helper
 - `src/renderer/lib/wallet/wallet-utils.js` — ZERO_ADDRESS, isChequebookDeployed, formatBalance, formatRawTokenBalance, formatBytes
 - `src/renderer/lib/wallet/stamp-manager.js` — stamp manager sidebar sub-screen (purchase, batch list, extensions)
+- `src/renderer/lib/wallet/funding-actions.js` — shared topUpXdai/topUpXbzz helpers and chain constants
+- `src/renderer/lib/wallet/chequebook-deposit.js` — chequebook deposit sub-screen
 - `src/renderer/lib/wallet/send.js` — send flow with openSend export and pre-fill options
 - `src/renderer/lib/wallet/receive.js` — receive screen with QR code (openReceive export)
 - `src/renderer/lib/tabs.js` — createTab with protocol URL routing (ens://, bzz://, ipfs://)
