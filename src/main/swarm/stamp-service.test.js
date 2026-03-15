@@ -18,6 +18,8 @@ const mockGetDurationExtensionCost = jest.fn();
 const mockGetSizeExtensionCost = jest.fn();
 const mockExtendStorageDuration = jest.fn();
 const mockExtendStorageSize = jest.fn();
+const mockGetChequebookBalance = jest.fn();
+const mockDepositTokens = jest.fn();
 
 jest.mock('@ethersphere/bee-js', () => ({
   Bee: jest.fn().mockImplementation(() => ({
@@ -29,6 +31,8 @@ jest.mock('@ethersphere/bee-js', () => ({
     getSizeExtensionCost: mockGetSizeExtensionCost,
     extendStorageDuration: mockExtendStorageDuration,
     extendStorageSize: mockExtendStorageSize,
+    getChequebookBalance: mockGetChequebookBalance,
+    depositTokens: mockDepositTokens,
   })),
   Size: {
     fromGigabytes: jest.fn((gb) => ({ gb })),
@@ -333,6 +337,39 @@ describe('stamp-service', () => {
 
     test('swarm:extend-storage-size rejects invalid inputs', async () => {
       const result = await invokeIpc('swarm:extend-storage-size', 'abc123', -5);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('positive');
+    });
+  });
+
+  describe('chequebook deposit IPC handlers', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test('swarm:deposit-chequebook succeeds when wallet has enough', async () => {
+      mockGetWalletBalance.mockResolvedValue({
+        bzzBalance: { toPLURBigInt: () => 5000000000000000n }, // 0.5 BZZ
+      });
+      mockDepositTokens.mockResolvedValue({ toHex: () => 'tx123' });
+
+      const result = await invokeIpc('swarm:deposit-chequebook', 0.1);
+      expect(result.success).toBe(true);
+      expect(result.transactionId).toBe('tx123');
+    });
+
+    test('swarm:deposit-chequebook rejects when wallet balance is insufficient', async () => {
+      mockGetWalletBalance.mockResolvedValue({
+        bzzBalance: { toPLURBigInt: () => 500000000000000n }, // 0.05 BZZ
+      });
+
+      const result = await invokeIpc('swarm:deposit-chequebook', 0.1);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Insufficient');
+    });
+
+    test('swarm:deposit-chequebook rejects invalid amount', async () => {
+      const result = await invokeIpc('swarm:deposit-chequebook', -1);
       expect(result.success).toBe(false);
       expect(result.error).toContain('positive');
     });

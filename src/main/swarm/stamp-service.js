@@ -327,9 +327,16 @@ function registerSwarmIpc() {
       if (!isPositiveNumber(amountBzz)) {
         return { success: false, error: 'Amount must be a positive number' };
       }
+
+      // Pre-check: verify Bee wallet has enough xBZZ
+      const requiredPlur = BigInt(Math.round(amountBzz * 1e16));
+      const walletBzz = await getBzzBalance();
+      if (walletBzz !== null && walletBzz < requiredPlur) {
+        return { success: false, error: `Insufficient xBZZ in Bee wallet. Need ${amountBzz} xBZZ.` };
+      }
+
       const bee = getBee();
-      // Convert BZZ decimal to PLUR string for depositTokens
-      const plurAmount = BigInt(Math.round(amountBzz * 1e16)).toString();
+      const plurAmount = requiredPlur.toString();
       const txId = await bee.depositTokens(plurAmount, undefined, { timeout: BUY_TIMEOUT_MS });
       const txHex = toHex(txId);
       log.info(`[StampService] Deposited ${amountBzz} xBZZ into chequebook (tx: ${txHex})`);
