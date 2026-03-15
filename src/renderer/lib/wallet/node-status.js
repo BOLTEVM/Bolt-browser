@@ -5,7 +5,7 @@
  */
 
 import { state } from '../state.js';
-import { formatBalance, formatRawTokenBalance } from './wallet-utils.js';
+import { formatBalance, formatRawTokenBalance, truncateAddress, isChequebookDeployed } from './wallet-utils.js';
 import { fetchBeeJson } from './bee-api.js';
 import { walletState } from './wallet-state.js';
 import {
@@ -238,6 +238,7 @@ function updateSwarmStatus(status, _error) {
 
     if (status !== 'starting' && status !== 'stopping') {
       actualSwarmMode = null;
+      chequebookFullAddress = null;
       swarmRuntimeInfo = createEmptySwarmRuntimeInfo();
     }
 
@@ -385,7 +386,7 @@ let chequebookFullAddress = null;
 
 function updateSwarmChequebook(addrResult, balResult) {
   const addr = addrResult?.ok ? addrResult.data?.chequebookAddress : null;
-  const isDeployed = addr && addr !== '0x0000000000000000000000000000000000000000' && addr.length > 2;
+  const isDeployed = isChequebookDeployed(addr);
 
   if (swarmChequebookGroup) {
     swarmChequebookGroup.classList.toggle('hidden', !isDeployed);
@@ -399,10 +400,7 @@ function updateSwarmChequebook(addrResult, balResult) {
   chequebookFullAddress = addr;
 
   if (swarmChequebookAddress) {
-    const short = addr.length > 12
-      ? `${addr.slice(0, 6)}\u2026${addr.slice(-4)}`
-      : addr;
-    swarmChequebookAddress.textContent = short;
+    swarmChequebookAddress.textContent = truncateAddress(addr);
     swarmChequebookAddress.title = addr;
   }
 
