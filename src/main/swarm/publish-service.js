@@ -31,18 +31,24 @@ function normalizeUploadResult(result, batchIdUsed) {
  */
 function normalizeTag(tag) {
   const split = tag.split || 0;
+  const seen = tag.seen || 0;
+  const stored = tag.stored || 0;
+  const sent = tag.sent || 0;
   const synced = tag.synced || 0;
-  const progress = split > 0 ? Math.min(1, synced / split) : 0;
+
+  // Use sent (chunks dispatched to network) for progress rather than synced
+  // (chunks fully replicated). Synced can lag indefinitely on light nodes.
+  const progressRatio = split > 0 ? Math.min(1, sent / split) : 0;
 
   return {
     tagUid: tag.uid,
     split,
-    seen: tag.seen || 0,
-    stored: tag.stored || 0,
-    sent: tag.sent || 0,
+    seen,
+    stored,
+    sent,
     synced,
-    progress: Math.round(progress * 100),
-    done: split > 0 && synced >= split,
+    progress: Math.round(progressRatio * 100),
+    done: split > 0 && sent >= split,
   };
 }
 

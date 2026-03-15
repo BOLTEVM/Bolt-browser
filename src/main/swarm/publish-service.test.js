@@ -94,7 +94,7 @@ describe('publish-service', () => {
   });
 
   describe('normalizeTag', () => {
-    test('computes progress percentage and done flag', () => {
+    test('computes progress from sent count and done flag', () => {
       expect(normalizeTag({ uid: 1, split: 100, synced: 75, seen: 80, stored: 90, sent: 85 })).toEqual({
         tagUid: 1,
         split: 100,
@@ -102,13 +102,13 @@ describe('publish-service', () => {
         stored: 90,
         sent: 85,
         synced: 75,
-        progress: 75,
+        progress: 85,
         done: false,
       });
     });
 
-    test('marks done when synced >= split', () => {
-      const tag = normalizeTag({ uid: 2, split: 10, synced: 10, seen: 10, stored: 10, sent: 10 });
+    test('marks done when sent >= split', () => {
+      const tag = normalizeTag({ uid: 2, split: 10, synced: 5, seen: 10, stored: 10, sent: 10 });
       expect(tag.done).toBe(true);
       expect(tag.progress).toBe(100);
     });
@@ -242,7 +242,7 @@ describe('publish-service', () => {
 
       const result = await invokeIpc('swarm:get-upload-status', 42);
       expect(result.success).toBe(true);
-      expect(result.progress).toBe(75);
+      expect(result.progress).toBe(85); // based on sent/split, not synced/split
       expect(result.done).toBe(false);
       expect(result.tagUid).toBe(42);
     });
