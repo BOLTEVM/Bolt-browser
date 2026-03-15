@@ -95,14 +95,17 @@ function buildPresets() {
 
 async function refreshBalances() {
   try {
-    const walletResult = await fetchBeeJson('/wallet');
+    const [walletResult, balResult] = await Promise.all([
+      fetchBeeJson('/wallet'),
+      fetchBeeJson('/chequebook/balance'),
+    ]);
+
     if (walletResult.ok && walletResult.data?.bzzBalance) {
       if (walletBzzEl) {
         walletBzzEl.textContent = `${formatRawTokenBalance(walletResult.data.bzzBalance, 16)} xBZZ`;
       }
     }
 
-    const balResult = await fetchBeeJson('/chequebook/balance');
     if (balResult.ok && balResult.data) {
       if (currentBzzEl) {
         const available = balResult.data.availableBalance;

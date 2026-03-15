@@ -11,12 +11,9 @@ import { isChequebookDeployed } from './wallet-utils.js';
 import { normalizeSwarmMode } from './swarm-readiness.js';
 import { fetchBeeJson } from './bee-api.js';
 import { openStampManager } from './stamp-manager.js';
-import { topUpXdai, topUpXbzz } from './funding-actions.js';
+import { topUpXdai, topUpXbzz, GNOSIS_CHAIN_ID, XDAI_TOKEN_KEY, XBZZ_TOKEN_KEY } from './funding-actions.js';
 import { createTab } from '../tabs.js';
 
-const GNOSIS_CHAIN_ID = 100;
-const XDAI_TOKEN_KEY = '100:native';
-const XBZZ_TOKEN_KEY = '100:0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da';
 const POLL_MS = 5000;
 
 // DOM references

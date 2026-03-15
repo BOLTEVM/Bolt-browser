@@ -10,9 +10,9 @@ import { openSend } from './send.js';
 import { openReceive } from './receive.js';
 import { createTab } from '../tabs.js';
 
-const GNOSIS_CHAIN_ID = 100;
-const XDAI_TOKEN_KEY = '100:native';
-const XBZZ_TOKEN_KEY = '100:0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da';
+export const GNOSIS_CHAIN_ID = 100;
+export const XDAI_TOKEN_KEY = '100:native';
+export const XBZZ_TOKEN_KEY = '100:0xdBF3Ea6F5beE45c02255B2c26a16F300502F68da';
 
 /**
  * Top up the Bee wallet with xDAI.
