@@ -5,9 +5,8 @@
  */
 
 import { state } from '../state.js';
-import { formatBalance, formatRawTokenBalance, truncateAddress, isChequebookDeployed } from './wallet-utils.js';
+import { formatRawTokenBalance, truncateAddress, isChequebookDeployed } from './wallet-utils.js';
 import { fetchBeeJson } from './bee-api.js';
-import { walletState } from './wallet-state.js';
 import {
   classifySwarmPublishState,
   normalizeSwarmMode,
@@ -388,13 +387,12 @@ function updateSwarmSetupCta() {
   });
 
   const inspectOnly = state.registry?.bee?.mode === 'reused';
-  const beeAvailable = state.currentBeeStatus === 'running' || state.currentBeeStatus === 'starting';
+  const beeRunning = state.currentBeeStatus === 'running';
   const isReady = publishState.key === 'ready';
-  const isConverging = publishState.key === 'initializing' && isStartupConverging;
+  const stateResolved = publishState.key !== 'initializing';
 
-  // Hide CTA during startup convergence (state not yet reliable)
-  // Show CTA when Bee is available, state is resolved, and not an external node
-  const showCta = !inspectOnly && beeAvailable && !isConverging;
+  // Only show CTA when Bee is running, state is fully resolved, and not external
+  const showCta = !inspectOnly && beeRunning && stateResolved;
 
   if (swarmSetupCta) {
     swarmSetupCta.classList.toggle('hidden', !showCta);
