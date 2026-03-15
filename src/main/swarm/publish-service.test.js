@@ -33,6 +33,11 @@ jest.mock('electron-log', () => ({
   error: jest.fn(),
 }));
 
+jest.mock('./publish-history', () => ({
+  addEntry: jest.fn(() => ({ id: 'test-history-id' })),
+  updateEntry: jest.fn(),
+}));
+
 // Mock fs for file operations
 jest.mock('fs', () => ({
   existsSync: jest.fn(),

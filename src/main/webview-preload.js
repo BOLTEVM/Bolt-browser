@@ -95,6 +95,12 @@ contextBridge.exposeInMainWorld('freedomAPI', {
     pickDirectoryForPublish: guardInternal('swarm.pickDirectoryForPublish', () =>
       ipcRenderer.invoke('swarm:pick-directory')
     ),
+    getPublishHistory: guardInternal('swarm.getPublishHistory', () =>
+      ipcRenderer.invoke('swarm:get-publish-history')
+    ),
+    clearPublishHistory: guardInternal('swarm.clearPublishHistory', () =>
+      ipcRenderer.invoke('swarm:clear-publish-history')
+    ),
   },
 });
 

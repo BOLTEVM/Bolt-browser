@@ -30,6 +30,8 @@ const publishAnotherBtn = document.getElementById('publish-another');
 const errorSection = document.getElementById('publish-error');
 const errorText = document.getElementById('publish-error-text');
 const errorRetryBtn = document.getElementById('publish-error-retry');
+const historyList = document.getElementById('publish-history-list');
+const historyClearBtn = document.getElementById('publish-history-clear');
 
 let progressPollTimeout = null;
 let lastResult = null;
@@ -66,6 +68,14 @@ function init() {
       window.freedomAPI?.openInNewTab?.(lastResult.bzzUrl);
     }
   });
+
+  historyClearBtn?.addEventListener('click', async () => {
+    await swarm.clearPublishHistory();
+    loadHistory();
+  });
+
+  // Load history on init
+  loadHistory();
 
   // Clean up polling on page unload
   window.addEventListener('pagehide', () => stopProgressPoll());
@@ -262,6 +272,7 @@ function stopProgressPoll() {
 function showResult(result) {
   lastResult = result;
   showView('result');
+  loadHistory();
 
   if (resultUrl) {
     resultUrl.textContent = result.bzzUrl || '--';
@@ -282,6 +293,88 @@ async function copyToClipboard(text) {
   if (!text) return;
   if (window.freedomAPI?.copyText) {
     await window.freedomAPI.copyText(text);
+  }
+}
+
+// ============================================
+// History
+// ============================================
+
+async function loadHistory() {
+  if (!swarm?.getPublishHistory) return;
+
+  try {
+    const result = await swarm.getPublishHistory();
+    if (result?.success) {
+      renderHistory(result.entries || []);
+    }
+  } catch {
+    // Non-critical
+  }
+}
+
+function renderHistory(entries) {
+  if (!historyList) return;
+
+  historyClearBtn?.classList.toggle('hidden', entries.length === 0);
+
+  if (entries.length === 0) {
+    historyList.innerHTML = '<div class="publish-history-empty">No publishes yet.</div>';
+    return;
+  }
+
+  historyList.innerHTML = '';
+
+  entries.forEach((entry) => {
+    const item = document.createElement('div');
+    item.className = 'publish-history-item';
+
+    const typeIcon = { data: '\u{1F4DD}', file: '\u{1F4C4}', directory: '\u{1F4C1}' }[entry.type] || '\u{1F4E6}';
+
+    const header = document.createElement('div');
+    header.className = 'publish-history-item-header';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'publish-history-item-name';
+    nameEl.textContent = `${typeIcon} ${entry.name || 'Untitled'}`;
+    header.appendChild(nameEl);
+
+    const statusEl = document.createElement('span');
+    statusEl.className = 'publish-history-item-status';
+    statusEl.dataset.status = entry.status;
+    statusEl.textContent = entry.status;
+    header.appendChild(statusEl);
+
+    item.appendChild(header);
+
+    if (entry.bzzUrl && entry.status === 'completed') {
+      const urlEl = document.createElement('a');
+      urlEl.className = 'publish-history-item-url';
+      urlEl.href = '#';
+      urlEl.textContent = entry.bzzUrl;
+      urlEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.freedomAPI?.openInNewTab?.(entry.bzzUrl);
+      });
+      item.appendChild(urlEl);
+    }
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'publish-history-item-time';
+    timeEl.textContent = formatTimestamp(entry.timestamp);
+    item.appendChild(timeEl);
+
+    historyList.appendChild(item);
+  });
+}
+
+function formatTimestamp(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString();
+  } catch {
+    return iso;
   }
 }
 
