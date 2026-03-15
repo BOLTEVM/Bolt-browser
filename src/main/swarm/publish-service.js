@@ -1,0 +1,228 @@
+/**
+ * Publish Service
+ *
+ * Upload operations via bee-js: data, files, and directories.
+ * All uploads use auto batch selection and return normalized results.
+ * Runs in the main process only — renderer interacts via IPC.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { ipcMain } = require('electron');
+const { getBee, selectBestBatch } = require('./swarm-service');
+const log = require('electron-log');
+
+function batchIdToHex(value, fallback = '') {
+  if (value && typeof value.toHex === 'function') return value.toHex();
+  return String(value || fallback);
+}
+
+function referenceToHex(ref) {
+  if (ref && typeof ref.toHex === 'function') return ref.toHex();
+  return String(ref || '');
+}
+
+/**
+ * Normalize an UploadResult to a Freedom publish result.
+ */
+function normalizeUploadResult(result, batchIdUsed) {
+  const reference = referenceToHex(result.reference);
+  return {
+    reference,
+    bzzUrl: reference ? `bzz://${reference}` : null,
+    tagUid: result.tagUid || null,
+    batchIdUsed: batchIdUsed || null,
+  };
+}
+
+/**
+ * Normalize a Bee Tag to a Freedom upload status.
+ */
+function normalizeTag(tag) {
+  const split = tag.split || 0;
+  const synced = tag.synced || 0;
+  const progress = split > 0 ? Math.min(1, synced / split) : 0;
+
+  return {
+    tagUid: tag.uid,
+    split,
+    seen: tag.seen || 0,
+    stored: tag.stored || 0,
+    sent: tag.sent || 0,
+    synced,
+    progress: Math.round(progress * 100),
+    done: split > 0 && synced >= split,
+  };
+}
+
+/**
+ * Publish raw data (string or Buffer).
+ */
+async function publishData(data, options = {}) {
+  const bee = getBee();
+  const sizeEstimate = Buffer.byteLength(data);
+  const batchId = options.batchId || await selectBestBatch(sizeEstimate);
+
+  if (!batchId) {
+    throw new Error('No usable postage batch available. Purchase stamps first.');
+  }
+
+  const result = await bee.uploadData(batchId, data, {
+    pin: true,
+    deferred: false,
+    ...options.uploadOptions,
+  });
+
+  return normalizeUploadResult(result, batchId);
+}
+
+/**
+ * Publish a file from a filesystem path.
+ */
+async function publishFile(filePath, options = {}) {
+  const bee = getBee();
+  const stat = fs.statSync(filePath);
+  const batchId = options.batchId || await selectBestBatch(stat.size);
+
+  if (!batchId) {
+    throw new Error('No usable postage batch available. Purchase stamps first.');
+  }
+
+  const data = fs.readFileSync(filePath);
+  const name = path.basename(filePath);
+  const contentType = options.contentType || undefined;
+
+  const result = await bee.uploadFile(batchId, data, name, {
+    pin: true,
+    deferred: true,
+    contentType,
+    ...options.uploadOptions,
+  });
+
+  return normalizeUploadResult(result, batchId);
+}
+
+/**
+ * Publish a directory as a Swarm collection.
+ * Auto-detects index.html as the default document.
+ */
+async function publishDirectory(dirPath, options = {}) {
+  const bee = getBee();
+
+  // Estimate total size
+  let totalSize = 0;
+  const estimateDir = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        estimateDir(full);
+      } else if (entry.isFile()) {
+        totalSize += fs.statSync(full).size;
+      }
+    }
+  };
+  estimateDir(dirPath);
+
+  const batchId = options.batchId || await selectBestBatch(totalSize);
+
+  if (!batchId) {
+    throw new Error('No usable postage batch available. Purchase stamps first.');
+  }
+
+  // Auto-detect index.html
+  const indexPath = path.join(dirPath, 'index.html');
+  const hasIndex = fs.existsSync(indexPath);
+
+  const result = await bee.uploadFilesFromDirectory(batchId, dirPath, {
+    pin: true,
+    deferred: true,
+    indexDocument: hasIndex ? 'index.html' : undefined,
+    ...options.uploadOptions,
+  });
+
+  return normalizeUploadResult(result, batchId);
+}
+
+/**
+ * Get upload progress for a tag.
+ */
+async function getUploadStatus(tagUid) {
+  const bee = getBee();
+  const tag = await bee.retrieveTag(tagUid);
+  return normalizeTag(tag);
+}
+
+/**
+ * Register IPC handlers for publish operations.
+ */
+function registerPublishIpc() {
+  ipcMain.handle('swarm:publish-data', async (_event, data) => {
+    try {
+      if (!data && data !== '') {
+        return { success: false, error: 'Data is required' };
+      }
+      const result = await publishData(data);
+      return { success: true, ...result };
+    } catch (err) {
+      log.error('[PublishService] Failed to publish data:', err.message);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('swarm:publish-file', async (_event, filePath) => {
+    try {
+      if (!filePath || typeof filePath !== 'string') {
+        return { success: false, error: 'File path is required' };
+      }
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: `File not found: ${filePath}` };
+      }
+      const result = await publishFile(filePath);
+      return { success: true, ...result };
+    } catch (err) {
+      log.error('[PublishService] Failed to publish file:', err.message);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('swarm:publish-directory', async (_event, dirPath) => {
+    try {
+      if (!dirPath || typeof dirPath !== 'string') {
+        return { success: false, error: 'Directory path is required' };
+      }
+      if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+        return { success: false, error: `Directory not found: ${dirPath}` };
+      }
+      const result = await publishDirectory(dirPath);
+      return { success: true, ...result };
+    } catch (err) {
+      log.error('[PublishService] Failed to publish directory:', err.message);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('swarm:get-upload-status', async (_event, tagUid) => {
+    try {
+      if (!tagUid || typeof tagUid !== 'number') {
+        return { success: false, error: 'Tag UID is required' };
+      }
+      const status = await getUploadStatus(tagUid);
+      return { success: true, ...status };
+    } catch (err) {
+      log.error('[PublishService] Failed to get upload status:', err.message);
+      return { success: false, error: err.message };
+    }
+  });
+
+  log.info('[PublishService] IPC handlers registered');
+}
+
+module.exports = {
+  normalizeUploadResult,
+  normalizeTag,
+  publishData,
+  publishFile,
+  publishDirectory,
+  getUploadStatus,
+  registerPublishIpc,
+};

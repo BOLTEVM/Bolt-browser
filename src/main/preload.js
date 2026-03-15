@@ -309,6 +309,10 @@ contextBridge.exposeInMainWorld('swarmNode', {
   getSizeExtensionCost: (batchId, newSizeGB) => ipcRenderer.invoke('swarm:get-size-extension-cost', batchId, newSizeGB),
   extendStorageDuration: (batchId, additionalDays) => ipcRenderer.invoke('swarm:extend-storage-duration', batchId, additionalDays),
   extendStorageSize: (batchId, newSizeGB) => ipcRenderer.invoke('swarm:extend-storage-size', batchId, newSizeGB),
+  publishData: (data) => ipcRenderer.invoke('swarm:publish-data', data),
+  publishFile: (filePath) => ipcRenderer.invoke('swarm:publish-file', filePath),
+  publishDirectory: (dirPath) => ipcRenderer.invoke('swarm:publish-directory', dirPath),
+  getUploadStatus: (tagUid) => ipcRenderer.invoke('swarm:get-upload-status', tagUid),
 });
 
 contextBridge.exposeInMainWorld('chainRegistry', {

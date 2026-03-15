@@ -34,7 +34,49 @@ function resetBeeClient() {
   beeClientUrl = null;
 }
 
+const SIZE_SAFETY_MARGIN = 1.5;
+
+/**
+ * Select the best usable postage batch for an upload of the given size.
+ * "Best" = usable, enough remaining space (with 1.5x safety margin),
+ * longest TTL. Returns the batch ID hex string, or null if none qualifies.
+ */
+async function selectBestBatch(estimatedSizeBytes) {
+  const bee = getBee();
+  const batches = await bee.getPostageBatches();
+
+  const requiredBytes = estimatedSizeBytes * SIZE_SAFETY_MARGIN;
+
+  let best = null;
+  let bestTtl = -1;
+
+  for (const batch of batches) {
+    if (!batch.usable) continue;
+
+    const remaining = batch.remainingSize && typeof batch.remainingSize.toBytes === 'function'
+      ? batch.remainingSize.toBytes()
+      : 0;
+
+    if (remaining < requiredBytes) continue;
+
+    const ttl = batch.duration && typeof batch.duration.toSeconds === 'function'
+      ? batch.duration.toSeconds()
+      : 0;
+
+    if (ttl > bestTtl) {
+      best = batch;
+      bestTtl = ttl;
+    }
+  }
+
+  if (!best) return null;
+
+  const id = best.batchID;
+  return id && typeof id.toHex === 'function' ? id.toHex() : String(id || '');
+}
+
 module.exports = {
   getBee,
   resetBeeClient,
+  selectBestBatch,
 };
