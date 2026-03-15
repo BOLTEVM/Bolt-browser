@@ -1927,7 +1927,148 @@
   background: rgba(26, 115, 232, 0.15);
 }
 
+/* TTL expiry warnings */
+.stamp-batch-value.ttl-warn {
+  color: #ff9800;
+}
+
+.stamp-batch-value.ttl-critical {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Batch card actions */
+.stamp-batch-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.stamp-batch-action-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  background: rgba(26, 115, 232, 0.08);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.stamp-batch-action-btn:hover {
+  background: rgba(26, 115, 232, 0.15);
+}
+
+/* Extension form (inline) */
+.stamp-extend-form {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stamp-extend-heading {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.stamp-extend-presets {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.stamp-extend-preset-btn {
+  flex: 1;
+  padding: 5px 4px;
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.stamp-extend-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.stamp-extend-preset-btn.selected {
+  color: var(--accent);
+  background: rgba(26, 115, 232, 0.1);
+  border-color: rgba(26, 115, 232, 0.35);
+}
+
+.stamp-extend-cost {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.stamp-extend-confirm-btn {
+  width: 100%;
+  padding: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.stamp-extend-confirm-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.stamp-extend-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.stamp-extend-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #ff9800;
+}
+
+.stamp-extend-status.success {
+  color: #4caf50;
+}
+
+.stamp-extend-status.error {
+  color: var(--danger);
+}
+
+.stamp-extend-cancel-btn {
+  margin-top: 6px;
+  padding: 5px 12px;
+  font-size: 11px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.stamp-extend-cancel-btn:hover {
+  color: var(--text);
+}
+
 [data-theme="light"] .stamp-batch-card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .stamp-extend-form {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .stamp-extend-preset-btn {
   background: rgba(0, 0, 0, 0.03);
   border-color: rgba(0, 0, 0, 0.1);
 }

@@ -136,6 +136,21 @@ async function loadBatchList() {
 // Batch list rendering
 // ============================================
 
+const DURATION_PRESETS = [
+  { label: '+7 days', days: 7 },
+  { label: '+30 days', days: 30 },
+  { label: '+90 days', days: 90 },
+];
+
+const SIZE_PRESETS = [
+  { label: '5 GB', gb: 5 },
+  { label: '10 GB', gb: 10 },
+  { label: '20 GB', gb: 20 },
+];
+
+const TTL_WARN_SECONDS = 7 * 86400; // 7 days
+const TTL_CRITICAL_SECONDS = 86400; // 1 day
+
 function renderBatchList(stamps) {
   if (!batchListContainer) return;
 
@@ -154,42 +169,23 @@ function renderBatchList(stamps) {
     card.appendChild(statusBadge);
 
     // Size info
-    const sizeRow = document.createElement('div');
-    sizeRow.className = 'stamp-batch-row';
-    const sizeLabel = document.createElement('span');
-    sizeLabel.className = 'stamp-batch-label';
-    sizeLabel.textContent = 'Size';
-    const sizeValue = document.createElement('span');
-    sizeValue.className = 'stamp-batch-value';
-    sizeValue.textContent = batch.sizeBytes > 0 ? formatBytes(batch.sizeBytes) : '--';
-    sizeRow.appendChild(sizeLabel);
-    sizeRow.appendChild(sizeValue);
+    const sizeRow = createRow('Size', batch.sizeBytes > 0 ? formatBytes(batch.sizeBytes) : '--');
     card.appendChild(sizeRow);
 
     // Usage
-    const usageRow = document.createElement('div');
-    usageRow.className = 'stamp-batch-row';
-    const usageLabel = document.createElement('span');
-    usageLabel.className = 'stamp-batch-label';
-    usageLabel.textContent = 'Used';
-    const usageValue = document.createElement('span');
-    usageValue.className = 'stamp-batch-value';
-    usageValue.textContent = `${batch.usagePercent}%`;
-    usageRow.appendChild(usageLabel);
-    usageRow.appendChild(usageValue);
-    card.appendChild(usageRow);
+    card.appendChild(createRow('Used', `${batch.usagePercent}%`));
 
-    // TTL
-    const ttlRow = document.createElement('div');
-    ttlRow.className = 'stamp-batch-row';
-    const ttlLabel = document.createElement('span');
-    ttlLabel.className = 'stamp-batch-label';
-    ttlLabel.textContent = 'Time remaining';
-    const ttlValue = document.createElement('span');
-    ttlValue.className = 'stamp-batch-value';
-    ttlValue.textContent = formatDuration(batch.ttlSeconds);
-    ttlRow.appendChild(ttlLabel);
-    ttlRow.appendChild(ttlValue);
+    // TTL with expiry warning
+    const ttlText = formatDuration(batch.ttlSeconds);
+    const ttlRow = createRow('Time remaining', ttlText);
+    const ttlValueEl = ttlRow.querySelector('.stamp-batch-value');
+    if (ttlValueEl && batch.ttlSeconds > 0) {
+      if (batch.ttlSeconds < TTL_CRITICAL_SECONDS) {
+        ttlValueEl.classList.add('ttl-critical');
+      } else if (batch.ttlSeconds < TTL_WARN_SECONDS) {
+        ttlValueEl.classList.add('ttl-warn');
+      }
+    }
     card.appendChild(ttlRow);
 
     // Batch ID
@@ -201,8 +197,189 @@ function renderBatchList(stamps) {
     idRow.title = batch.batchId || '';
     card.appendChild(idRow);
 
+    // Action buttons (only for usable batches)
+    if (batch.usable && batch.batchId) {
+      const actions = document.createElement('div');
+      actions.className = 'stamp-batch-actions';
+
+      const extDurBtn = document.createElement('button');
+      extDurBtn.type = 'button';
+      extDurBtn.className = 'stamp-batch-action-btn';
+      extDurBtn.textContent = 'Extend Duration';
+      extDurBtn.addEventListener('click', () => showExtensionForm(card, batch, 'duration'));
+      actions.appendChild(extDurBtn);
+
+      const extSizeBtn = document.createElement('button');
+      extSizeBtn.type = 'button';
+      extSizeBtn.className = 'stamp-batch-action-btn';
+      extSizeBtn.textContent = 'Extend Size';
+      extSizeBtn.addEventListener('click', () => showExtensionForm(card, batch, 'size'));
+      actions.appendChild(extSizeBtn);
+
+      card.appendChild(actions);
+    }
+
     batchListContainer.appendChild(card);
   });
+}
+
+function createRow(label, value) {
+  const row = document.createElement('div');
+  row.className = 'stamp-batch-row';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'stamp-batch-label';
+  labelEl.textContent = label;
+  const valueEl = document.createElement('span');
+  valueEl.className = 'stamp-batch-value';
+  valueEl.textContent = value;
+  row.appendChild(labelEl);
+  row.appendChild(valueEl);
+  return row;
+}
+
+// ============================================
+// Extension form (inline within batch card)
+// ============================================
+
+function showExtensionForm(card, batch, type) {
+  // Remove any existing extension form in this card
+  const existing = card.querySelector('.stamp-extend-form');
+  if (existing) existing.remove();
+
+  const form = document.createElement('div');
+  form.className = 'stamp-extend-form';
+
+  const presets = type === 'duration' ? DURATION_PRESETS : SIZE_PRESETS;
+  const title = type === 'duration' ? 'Extend Duration' : 'Extend Size';
+
+  const heading = document.createElement('div');
+  heading.className = 'stamp-extend-heading';
+  heading.textContent = title;
+  form.appendChild(heading);
+
+  const presetRow = document.createElement('div');
+  presetRow.className = 'stamp-extend-presets';
+
+  let selectedValue = null;
+
+  presets.forEach((preset, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'stamp-extend-preset-btn';
+    btn.textContent = preset.label;
+    btn.addEventListener('click', () => {
+      presetRow.querySelectorAll('.stamp-extend-preset-btn').forEach((b, j) => {
+        b.classList.toggle('selected', j === i);
+      });
+      selectedValue = type === 'duration' ? preset.days : preset.gb;
+      estimateExtensionCost(form, batch.batchId, type, selectedValue);
+    });
+    presetRow.appendChild(btn);
+  });
+  form.appendChild(presetRow);
+
+  const costRow = document.createElement('div');
+  costRow.className = 'stamp-extend-cost hidden';
+  costRow.dataset.role = 'cost';
+  form.appendChild(costRow);
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'stamp-extend-confirm-btn';
+  confirmBtn.textContent = 'Confirm';
+  confirmBtn.disabled = true;
+  confirmBtn.dataset.role = 'confirm';
+  confirmBtn.addEventListener('click', () => {
+    if (selectedValue) {
+      executeExtension(form, batch.batchId, type, selectedValue);
+    }
+  });
+  form.appendChild(confirmBtn);
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'stamp-extend-status hidden';
+  statusEl.dataset.role = 'status';
+  form.appendChild(statusEl);
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'stamp-extend-cancel-btn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => form.remove());
+  form.appendChild(cancelBtn);
+
+  card.appendChild(form);
+}
+
+async function estimateExtensionCost(form, batchId, type, value) {
+  const costEl = form.querySelector('[data-role="cost"]');
+  const confirmBtn = form.querySelector('[data-role="confirm"]');
+
+  if (costEl) {
+    costEl.textContent = 'Estimating cost\u2026';
+    costEl.classList.remove('hidden');
+  }
+  if (confirmBtn) confirmBtn.disabled = true;
+
+  try {
+    const result = type === 'duration'
+      ? await window.swarmNode?.getDurationExtensionCost(batchId, value)
+      : await window.swarmNode?.getSizeExtensionCost(batchId, value);
+
+    if (!isOpen) return;
+
+    if (result?.success) {
+      if (costEl) costEl.textContent = `Cost: ${result.bzz} xBZZ`;
+      if (confirmBtn) confirmBtn.disabled = false;
+    } else {
+      if (costEl) costEl.textContent = result?.error || 'Failed to estimate cost.';
+    }
+  } catch (err) {
+    if (costEl) costEl.textContent = err.message || 'Failed to estimate cost.';
+  }
+}
+
+async function executeExtension(form, batchId, type, value) {
+  const confirmBtn = form.querySelector('[data-role="confirm"]');
+  const statusEl = form.querySelector('[data-role="status"]');
+
+  if (confirmBtn) confirmBtn.disabled = true;
+  if (statusEl) {
+    statusEl.textContent = type === 'duration'
+      ? 'Extending duration\u2026'
+      : 'Extending size\u2026';
+    statusEl.classList.remove('hidden');
+  }
+
+  try {
+    const result = type === 'duration'
+      ? await window.swarmNode?.extendStorageDuration(batchId, value)
+      : await window.swarmNode?.extendStorageSize(batchId, value);
+
+    if (!isOpen) return;
+
+    if (result?.success) {
+      if (statusEl) {
+        statusEl.textContent = 'Extension successful.';
+        statusEl.classList.add('success');
+      }
+      // Refresh the batch list after a short delay
+      setTimeout(() => { if (isOpen) loadBatchList(); }, 2000);
+    } else {
+      if (statusEl) {
+        statusEl.textContent = result?.error || 'Extension failed.';
+        statusEl.classList.add('error');
+      }
+      if (confirmBtn) confirmBtn.disabled = false;
+    }
+  } catch (err) {
+    if (!isOpen) return;
+    if (statusEl) {
+      statusEl.textContent = err.message || 'Extension failed.';
+      statusEl.classList.add('error');
+    }
+    if (confirmBtn) confirmBtn.disabled = false;
+  }
 }
 
 function formatDuration(seconds) {
