@@ -1473,7 +1473,27 @@ Option 2 is better UX but requires deciding how much to deposit. A reasonable de
 - `bee.depositTokens(amount)` — deposits xBZZ from the wallet into the chequebook
 - `bee.withdrawTokens(amount)` — withdraws from chequebook back to wallet
 
-This should be addressed before shipping the publishing feature to users, as unfunded chequebooks will degrade network performance and may affect content retrievability.
+This has been addressed: chequebook deposit sub-screen, auto-deposit on stamp purchase, and clickable balance rows in the node card are all implemented.
+
+#### RPC rate limiting during large uploads (2026-03-15)
+
+Live testing of a large file upload (~250 MB) with a funded chequebook revealed two types of payment failures in Bee's stdout:
+
+1. **"context deadline exceeded"** — The public Gnosis Chain RPC (`https://rpc.gnosischain.com`) times out under high concurrent request volume. During a large upload, Bee issues cheque payments to many peers simultaneously, each requiring an RPC call for the on-chain transaction.
+
+2. **"429 Too Many Requests"** — The public RPC rate-limits the node after too many concurrent requests. Bee retries aggressively, which compounds the issue.
+
+**Why it happens:** A large file produces thousands of chunks. Each chunk is forwarded by multiple peers. Bee tries to pay each peer via a cheque transaction, which requires RPC calls. Hundreds of concurrent payments → hundreds of concurrent RPC calls → the public RPC endpoint can't keep up.
+
+**Impact:** Uploads still succeed. The cheque payments are deferred and retried later when the RPC recovers. Peers tolerate some temporary unpaid debt. This is a known limitation in the Swarm ecosystem for light nodes with high upload volumes, not a Freedom-specific bug.
+
+**Potential improvements:**
+
+- **Use a better RPC endpoint** — a private or paid RPC (Infura, Alchemy, or a self-hosted Gnosis node) would handle the load without rate limiting. The Bee config (`blockchain-rpc-endpoint`) only takes a single URL.
+- **Add RPC fallback support** — Freedom's wallet stack already has multi-provider fallback (`provider-manager.js` with `getRpcUrlsForChain`). We could investigate whether Bee supports multiple blockchain RPC endpoints, or whether Freedom should proxy RPC calls for Bee through its own provider infrastructure.
+- **Surface the issue to the user** — currently these warnings are only visible in the console logs. Freedom could monitor for repeated payment failures and show a non-blocking notification suggesting the user configure a better RPC endpoint.
+
+This is not blocking for the current milestone but should be addressed before recommending Freedom for heavy upload workloads.
 
 ## Open Questions And Research Directions
 
