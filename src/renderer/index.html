@@ -1957,6 +1957,55 @@
               </div>
             </div>
 
+            <!-- Swarm Publish Approval sub-screen -->
+            <div id="sidebar-swarm-publish-approve" class="sidebar-subscreen hidden">
+              <div class="subscreen-header">
+                <button type="button" class="subscreen-back-btn" id="swarm-publish-back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                  <span>Back</span>
+                </button>
+                <h3 class="subscreen-title">Confirm Publish</h3>
+              </div>
+
+              <div class="subscreen-content">
+                <div class="swarm-connect-origin">
+                  <div class="swarm-connect-site" id="swarm-publish-site">site.eth</div>
+                  <div class="swarm-connect-wants">wants to publish content</div>
+                </div>
+
+                <div class="swarm-publish-details">
+                  <div class="swarm-publish-row">
+                    <span class="swarm-publish-label">Type</span>
+                    <span class="swarm-publish-value" id="swarm-publish-type">text/plain</span>
+                  </div>
+                  <div class="swarm-publish-row">
+                    <span class="swarm-publish-label">Size</span>
+                    <span class="swarm-publish-value" id="swarm-publish-size">0 B</span>
+                  </div>
+                  <div class="swarm-publish-row hidden" id="swarm-publish-name-row">
+                    <span class="swarm-publish-label">Name</span>
+                    <span class="swarm-publish-value" id="swarm-publish-name"></span>
+                  </div>
+                </div>
+
+                <div class="swarm-connect-warning">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  <span>This will use your stamps and bandwidth. Content will be publicly accessible on Swarm.</span>
+                </div>
+
+                <div class="swarm-connect-actions">
+                  <button type="button" class="swarm-connect-reject-btn" id="swarm-publish-reject">Cancel</button>
+                  <button type="button" class="swarm-connect-approve-btn" id="swarm-publish-confirm">Publish</button>
+                </div>
+              </div>
+            </div>
+
       </aside>
     </section>
 

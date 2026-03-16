@@ -2758,6 +2758,41 @@
 }
 
 /* ============================================
+   Swarm Publish Approval Details
+   ============================================ */
+
+.swarm-publish-details {
+  background: var(--toolbar);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.swarm-publish-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.swarm-publish-row + .swarm-publish-row {
+  border-top: 1px solid var(--border);
+}
+
+.swarm-publish-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.swarm-publish-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--foreground);
+  text-align: right;
+  word-break: break-all;
+}
+
+/* ============================================
    Wallet Selector Dropdown
    ============================================ */
 

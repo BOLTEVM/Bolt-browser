@@ -25,6 +25,8 @@ const { ipcMain } = require('electron');
 const IPC = require('../../shared/ipc-channels');
 const { normalizeOrigin } = require('../../shared/origin-utils');
 const { getPermission } = require('./swarm-permissions');
+const { publishData } = require('./publish-service');
+const { addEntry, updateEntry } = require('./publish-history');
 const { getBeeApiUrl } = require('../service-registry');
 const log = require('electron-log');
 
@@ -51,9 +53,8 @@ const KNOWN_METHODS = [
   'swarm_getUploadStatus',
 ];
 
-// Methods that will be implemented in WP3-C/D
+// Methods that will be implemented in WP3-D
 const STUBBED_METHODS = [
-  'swarm_publishData',
   'swarm_publishFiles',
   'swarm_getUploadStatus',
 ];
@@ -93,7 +94,11 @@ async function executeSwarmMethod(method, params, origin) {
       return { error: { ...ERRORS.UNAUTHORIZED, message: 'Origin not authorized. Call swarm_requestAccess first.' } };
     }
 
-    // Stubbed methods — not yet implemented
+    if (method === 'swarm_publishData') {
+      return handlePublishData(params, normalizedOrigin);
+    }
+
+    // Stubbed methods — not yet implemented (WP3-D)
     if (STUBBED_METHODS.includes(method)) {
       return {
         error: {
@@ -135,6 +140,73 @@ async function handleGetCapabilities(origin) {
       },
     },
   };
+}
+
+/**
+ * Handle swarm_publishData: validate, enforce limits, publish via publish-service.
+ */
+async function handlePublishData(params, origin) {
+  if (!params || typeof params !== 'object') {
+    return { error: { ...ERRORS.INVALID_PARAMS, message: 'params is required', data: { reason: 'invalid_params' } } };
+  }
+
+  const { data, contentType, name } = params;
+
+  if (data === undefined || data === null) {
+    return { error: { ...ERRORS.INVALID_PARAMS, message: 'data is required', data: { reason: 'invalid_params' } } };
+  }
+
+  if (!contentType || typeof contentType !== 'string') {
+    return { error: { ...ERRORS.INVALID_PARAMS, message: 'contentType is required', data: { reason: 'missing_content_type' } } };
+  }
+
+  // Accept string or Buffer/Uint8Array (Electron structured clone preserves typed arrays)
+  const isString = typeof data === 'string';
+  const isBuffer = Buffer.isBuffer(data) || data instanceof Uint8Array;
+  if (!isString && !isBuffer) {
+    return { error: { ...ERRORS.INVALID_PARAMS, message: 'data must be a string or Uint8Array', data: { reason: 'invalid_params' } } };
+  }
+
+  // Enforce size limit on decoded content
+  const size = isString ? Buffer.byteLength(data, 'utf-8') : data.length;
+  if (size > LIMITS.maxDataBytes) {
+    return {
+      error: {
+        ...ERRORS.INVALID_PARAMS,
+        message: `Payload exceeds maximum size of ${LIMITS.maxDataBytes} bytes`,
+        data: { reason: 'payload_too_large', limit: LIMITS.maxDataBytes, actual: size },
+      },
+    };
+  }
+
+  // Pre-flight check
+  const preFlight = await checkSwarmPreFlight();
+  if (!preFlight.ok) {
+    return { error: { ...ERRORS.NODE_UNAVAILABLE, message: `Node not available: ${preFlight.reason}`, data: { reason: preFlight.reason } } };
+  }
+
+  // Record history entry before upload
+  const historyEntry = addEntry({
+    type: 'data',
+    name: name || 'Published data',
+    status: 'uploading',
+  });
+
+  try {
+    const result = await publishData(data, {
+      contentType,
+      name: name || undefined,
+    });
+
+    updateEntry(historyEntry.id, { status: 'completed', ...result });
+    log.info(`[SwarmProvider] publishData succeeded for ${origin}: ${result.bzzUrl}`);
+
+    return { result: { reference: result.reference, bzzUrl: result.bzzUrl } };
+  } catch (err) {
+    updateEntry(historyEntry.id, { status: 'failed' });
+    log.error(`[SwarmProvider] publishData failed for ${origin}:`, err.message);
+    return { error: { ...ERRORS.INTERNAL_ERROR, message: err.message } };
+  }
 }
 
 /**

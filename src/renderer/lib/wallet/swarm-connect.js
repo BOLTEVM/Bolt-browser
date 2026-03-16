@@ -6,6 +6,7 @@
  */
 
 import { walletState, registerScreenHider, hideAllSubscreens } from './wallet-state.js';
+import { formatBytes } from './wallet-utils.js';
 import { open as openSidebarPanel, isVisible as isSidebarVisible } from '../sidebar.js';
 import { getPermissionKey } from '../dapp-provider.js';
 
@@ -21,8 +22,20 @@ let swarmConnectionBanner;
 let swarmConnectionSite;
 let swarmConnectionDisconnect;
 
+// DOM references — publish approval screen
+let swarmPublishScreen;
+let swarmPublishBackBtn;
+let swarmPublishSite;
+let swarmPublishType;
+let swarmPublishSize;
+let swarmPublishNameRow;
+let swarmPublishName;
+let swarmPublishRejectBtn;
+let swarmPublishConfirmBtn;
+
 // Local state
 let swarmConnectPending = null;
+let swarmPublishPending = null;
 let currentBannerPermissionKey = null;
 
 export function initSwarmConnect() {
@@ -36,9 +49,33 @@ export function initSwarmConnect() {
   swarmConnectionSite = document.getElementById('swarm-connection-site');
   swarmConnectionDisconnect = document.getElementById('swarm-connection-disconnect');
 
-  registerScreenHider(() => swarmConnectScreen?.classList.add('hidden'));
+  swarmPublishScreen = document.getElementById('sidebar-swarm-publish-approve');
+  swarmPublishBackBtn = document.getElementById('swarm-publish-back');
+  swarmPublishSite = document.getElementById('swarm-publish-site');
+  swarmPublishType = document.getElementById('swarm-publish-type');
+  swarmPublishSize = document.getElementById('swarm-publish-size');
+  swarmPublishNameRow = document.getElementById('swarm-publish-name-row');
+  swarmPublishName = document.getElementById('swarm-publish-name');
+  swarmPublishRejectBtn = document.getElementById('swarm-publish-reject');
+  swarmPublishConfirmBtn = document.getElementById('swarm-publish-confirm');
+
+  registerScreenHider(() => {
+    swarmConnectScreen?.classList.add('hidden');
+    if (swarmConnectPending) {
+      swarmConnectPending.reject({ code: 4001, message: 'User dismissed prompt' });
+      swarmConnectPending = null;
+    }
+  });
+  registerScreenHider(() => {
+    swarmPublishScreen?.classList.add('hidden');
+    if (swarmPublishPending) {
+      swarmPublishPending.reject({ code: 4001, message: 'User dismissed prompt' });
+      swarmPublishPending = null;
+    }
+  });
 
   setupSwarmConnectScreen();
+  setupSwarmPublishScreen();
 }
 
 function setupSwarmConnectScreen() {
@@ -188,4 +225,93 @@ async function disconnectCurrentSwarmApp() {
   } catch (err) {
     console.error('[SwarmConnect] Failed to disconnect:', err);
   }
+}
+
+// ============================================
+// Per-publish approval prompt
+// ============================================
+
+function setupSwarmPublishScreen() {
+  if (swarmPublishBackBtn) {
+    swarmPublishBackBtn.addEventListener('click', () => {
+      rejectSwarmPublish();
+      closeSwarmPublishApproval();
+    });
+  }
+
+  if (swarmPublishRejectBtn) {
+    swarmPublishRejectBtn.addEventListener('click', () => {
+      rejectSwarmPublish();
+      closeSwarmPublishApproval();
+    });
+  }
+
+  if (swarmPublishConfirmBtn) {
+    swarmPublishConfirmBtn.addEventListener('click', () => {
+      approveSwarmPublish();
+      closeSwarmPublishApproval();
+    });
+  }
+}
+
+/**
+ * Show the per-publish approval prompt.
+ * Resolves on "Publish", rejects (code 4001) on "Cancel".
+ */
+export function showSwarmPublishApproval(permissionKey, params, resolve, reject) {
+  swarmPublishPending = { resolve, reject };
+
+  if (swarmPublishSite) {
+    swarmPublishSite.textContent = permissionKey || 'Unknown';
+  }
+  if (swarmPublishType) {
+    swarmPublishType.textContent = params?.contentType || 'unknown';
+  }
+  if (swarmPublishSize) {
+    const data = params?.data;
+    let size = 0;
+    if (typeof data === 'string') {
+      size = new Blob([data]).size;
+    } else if (data instanceof ArrayBuffer) {
+      size = data.byteLength;
+    } else if (data?.length !== undefined) {
+      // Uint8Array or similar typed array
+      size = data.length;
+    }
+    swarmPublishSize.textContent = formatBytes(size);
+  }
+  if (swarmPublishNameRow && swarmPublishName) {
+    if (params?.name) {
+      swarmPublishName.textContent = params.name;
+      swarmPublishNameRow.classList.remove('hidden');
+    } else {
+      swarmPublishNameRow.classList.add('hidden');
+    }
+  }
+
+  hideAllSubscreens();
+  walletState.identityView?.classList.add('hidden');
+  swarmPublishScreen?.classList.remove('hidden');
+
+  openSidebarPanel();
+}
+
+function closeSwarmPublishApproval() {
+  swarmPublishScreen?.classList.add('hidden');
+  walletState.identityView?.classList.remove('hidden');
+  swarmPublishPending = null;
+}
+
+function approveSwarmPublish() {
+  if (!swarmPublishPending) return;
+  const { resolve } = swarmPublishPending;
+  resolve();
+  console.log('[SwarmConnect] Publish approved');
+}
+
+function rejectSwarmPublish() {
+  if (!swarmPublishPending) return;
+  const { reject } = swarmPublishPending;
+  reject({ code: 4001, message: 'User rejected publish' });
+  console.log('[SwarmConnect] Publish rejected');
 }

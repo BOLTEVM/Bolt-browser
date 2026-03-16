@@ -12,7 +12,7 @@
 
 import { getPermissionKey } from './dapp-provider.js';
 import { getDisplayUrlForWebview } from './tabs.js';
-import { showSwarmConnect, updateSwarmConnectionBanner } from './wallet-ui.js';
+import { showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval } from './wallet-ui.js';
 
 const ERRORS = {
   USER_REJECTED: { code: 4001, message: 'User rejected the request' },
@@ -71,16 +71,20 @@ async function handleSwarmRequest(webview, request) {
       const response = await window.swarmProvider.execute(method, params, permissionKey);
       if (response.error) throw response.error;
       result = response.result;
+    } else if (method === 'swarm_publishData') {
+      // Publish requires permission + per-publish user approval
+      await requirePermission(permissionKey);
+
+      // Show per-publish approval prompt (resolves on Publish, rejects on Cancel)
+      await new Promise((resolve, reject) => {
+        showSwarmPublishApproval(permissionKey, params, resolve, reject);
+      });
+
+      // User approved — forward to main
+      result = await executeWithPermission(method, params, permissionKey);
     } else {
-      // All other methods: check permission first, then forward to main
-      const permission = await window.swarmPermissions.getPermission(permissionKey);
-      if (!permission) {
-        throw { ...ERRORS.UNAUTHORIZED, message: 'Origin not authorized. Call swarm_requestAccess first.' };
-      }
-      await window.swarmPermissions.updateLastUsed(permissionKey);
-      const response = await window.swarmProvider.execute(method, params, permissionKey);
-      if (response.error) throw response.error;
-      result = response.result;
+      // All other methods: check permission, forward to main
+      result = await executeWithPermission(method, params, permissionKey);
     }
 
     sendSwarmResponse(webview, id, result, null);
@@ -91,6 +95,27 @@ async function handleSwarmRequest(webview, request) {
       data: error.data,
     });
   }
+}
+
+/**
+ * Check that the origin has Swarm permission. Throws UNAUTHORIZED if not.
+ */
+async function requirePermission(permissionKey) {
+  const permission = await window.swarmPermissions.getPermission(permissionKey);
+  if (!permission) {
+    throw { ...ERRORS.UNAUTHORIZED, message: 'Origin not authorized. Call swarm_requestAccess first.' };
+  }
+}
+
+/**
+ * Check permission, update lastUsed, forward to main, unwrap result.
+ */
+async function executeWithPermission(method, params, permissionKey) {
+  await requirePermission(permissionKey);
+  await window.swarmPermissions.updateLastUsed(permissionKey);
+  const response = await window.swarmProvider.execute(method, params, permissionKey);
+  if (response.error) throw response.error;
+  return response.result;
 }
 
 /**
