@@ -27,6 +27,7 @@ import { initPublishSetup, closePublishSetup } from './wallet/publish-setup.js';
 import { initStampManager, closeStampManager } from './wallet/stamp-manager.js';
 import { initChequebookDeposit, closeChequebookDeposit } from './wallet/chequebook-deposit.js';
 import { initSwarmConnect, showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval } from './wallet/swarm-connect.js';
+import { initPublisherIdentities, closePublisherIdentities } from './wallet/publisher-identities.js';
 
 // Re-export public API consumed by dapp-provider.js, swarm-provider.js, and index.js
 export { showDappConnect, updateConnectionBanner, showDappTxApproval, showDappSignApproval };
@@ -74,6 +75,7 @@ export function initWalletUi() {
   initPublishSetup();
   initStampManager();
   initChequebookDeposit();
+  initPublisherIdentities();
 
   // Load chain registry (updates registeredTokens/registeredChains, then render)
   loadChainRegistry().then(() => {
@@ -316,6 +318,7 @@ function closeAllSubscreens() {
   closePublishSetup();
   closeStampManager();
   closeChequebookDeposit();
+  closePublisherIdentities();
   closeRpcApiKeyScreen();
 }
 

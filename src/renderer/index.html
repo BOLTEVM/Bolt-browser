@@ -860,6 +860,16 @@
                       </div>
                     </div>
 
+                    <!-- Publisher Identities CTA (visible when identities exist) -->
+                    <div class="node-upgrade-cta hidden" id="swarm-identities-cta">
+                      <button type="button" class="node-upgrade-btn" id="swarm-identities-btn">
+                        <span>Publisher Identities</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                      </button>
+                    </div>
+
                     <!-- Publishing Setup CTA -->
                     <div class="node-upgrade-cta" id="swarm-setup-cta">
                       <button type="button" class="node-upgrade-btn" id="swarm-setup-btn">
@@ -2090,6 +2100,27 @@
                   <button type="button" class="swarm-connect-reject-btn" id="swarm-feed-reject">Cancel</button>
                   <button type="button" class="swarm-connect-approve-btn" id="swarm-feed-approve" disabled>Allow</button>
                 </div>
+              </div>
+            </div>
+
+            <!-- Publisher Identities sub-screen -->
+            <div id="sidebar-publisher-identities" class="sidebar-subscreen hidden">
+              <div class="subscreen-header">
+                <button type="button" class="subscreen-back-btn" id="publisher-identities-back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                  <span>Back</span>
+                </button>
+                <h3 class="subscreen-title">Publisher Identities</h3>
+              </div>
+
+              <div class="subscreen-content">
+                <div class="publisher-identity-search">
+                  <input type="text" id="publisher-identity-filter" placeholder="Search origins..." autocomplete="off">
+                </div>
+                <div id="publisher-identity-list"></div>
+                <div class="publisher-identity-empty hidden" id="publisher-identity-empty">No publisher identities yet.</div>
               </div>
             </div>
 

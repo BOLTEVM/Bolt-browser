@@ -15,6 +15,7 @@ import { openPublishSetup } from './publish-setup.js';
 import { openStampManager } from './stamp-manager.js';
 import { topUpXdai, topUpXbzz } from './funding-actions.js';
 import { openChequebookDeposit } from './chequebook-deposit.js';
+import { openPublisherIdentities } from './publisher-identities.js';
 
 const SWARM_REFRESH_MS = 15000;
 const SWARM_STARTUP_REFRESH_MS = 2000;
@@ -29,6 +30,7 @@ let swarmWalletGroup;
 let swarmChequebookGroup;
 let swarmChequebookAddress;
 let swarmChequebookBalance;
+let swarmIdentitiesCta;
 let swarmSetupCta;
 let swarmSetupBtn;
 let swarmSetupBtnLabel;
@@ -61,6 +63,7 @@ export function initNodeStatus() {
   swarmChequebookGroup = document.getElementById('swarm-chequebook-group');
   swarmChequebookAddress = document.getElementById('swarm-chequebook-address');
   swarmChequebookBalance = document.getElementById('swarm-chequebook-balance');
+  swarmIdentitiesCta = document.getElementById('swarm-identities-cta');
   swarmSetupCta = document.getElementById('swarm-setup-cta');
   swarmSetupBtn = document.getElementById('swarm-setup-btn');
   swarmSetupBtnLabel = document.getElementById('swarm-setup-btn-label');
@@ -105,6 +108,14 @@ function setupNodeCards() {
     swarmSetupBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       handleSetupCtaClick();
+    });
+  }
+
+  const swarmIdentitiesBtn = document.getElementById('swarm-identities-btn');
+  if (swarmIdentitiesBtn) {
+    swarmIdentitiesBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openPublisherIdentities();
     });
   }
 }
@@ -430,6 +441,19 @@ function updateSwarmSetupCta() {
       };
       swarmSetupHint.textContent = hints[publishState.key] || '';
     }
+  }
+
+  // Show publisher identities button when identities exist
+  updatePublisherIdentitiesButton();
+}
+
+async function updatePublisherIdentitiesButton() {
+  if (!swarmIdentitiesCta) return;
+  try {
+    const entries = await window.swarmFeedStore?.getAllOrigins?.();
+    swarmIdentitiesCta.classList.toggle('hidden', !entries || entries.length === 0);
+  } catch {
+    swarmIdentitiesCta.classList.add('hidden');
   }
 }
 

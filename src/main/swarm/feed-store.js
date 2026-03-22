@@ -214,6 +214,25 @@ function getAllFeeds(origin) {
 }
 
 /**
+ * Get all origin entries with feed identities.
+ * @returns {Array<{ origin, identityMode, publisherKeyIndex, feedGranted, grantedAt, feedCount }>}
+ */
+function getAllOriginEntries() {
+  const store = loadFeeds();
+  return Object.entries(store.origins)
+    .filter(([, entry]) => entry.identityMode)
+    .map(([origin, entry]) => ({
+      origin,
+      identityMode: entry.identityMode,
+      publisherKeyIndex: entry.publisherKeyIndex ?? null,
+      feedGranted: !!entry.feedGranted,
+      grantedAt: entry.grantedAt || null,
+      feedCount: entry.feeds ? Object.keys(entry.feeds).length : 0,
+    }))
+    .sort((a, b) => (b.grantedAt || 0) - (a.grantedAt || 0));
+}
+
+/**
  * Check if an origin has feed identity metadata set.
  * This is NOT the same as "has feed permission" — identity metadata
  * survives permission revocation. The renderer must also check
@@ -275,6 +294,10 @@ function registerFeedStoreIpc() {
     return getAllFeeds(origin);
   });
 
+  ipcMain.handle(IPC.SWARM_GET_ALL_ORIGINS, () => {
+    return getAllOriginEntries();
+  });
+
   ipcMain.handle(IPC.SWARM_HAS_FEED_IDENTITY, (_event, origin) => {
     return hasIdentityMode(origin);
   });
@@ -332,6 +355,7 @@ module.exports = {
   setFeed,
   updateFeedReference,
   getAllFeeds,
+  getAllOriginEntries,
   hasIdentityMode,
   hasFeedGrant,
   grantFeedAccess,
