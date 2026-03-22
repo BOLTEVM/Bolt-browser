@@ -80,7 +80,13 @@ function getOriginEntry(origin) {
   const key = normalizeOrigin(origin);
   const entry = store.origins[key];
   if (!entry) return null;
-  return { ...entry, feeds: entry.feeds ? { ...entry.feeds } : {} };
+  const feedsCopy = {};
+  if (entry.feeds) {
+    for (const [name, feed] of Object.entries(entry.feeds)) {
+      feedsCopy[name] = { ...feed };
+    }
+  }
+  return { ...entry, feeds: feedsCopy };
 }
 
 /**
