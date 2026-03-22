@@ -43,6 +43,15 @@ let swarmFeedName;
 let swarmFeedRejectBtn;
 let swarmFeedApproveBtn;
 
+// DOM references — feed unlock section
+let swarmFeedUnlock;
+let swarmFeedTouchIdBtn;
+let swarmFeedPasswordLink;
+let swarmFeedPasswordSection;
+let swarmFeedPasswordInput;
+let swarmFeedPasswordSubmit;
+let swarmFeedUnlockError;
+
 // Local state
 let swarmConnectPending = null;
 let swarmPublishPending = null;
@@ -98,6 +107,14 @@ export function initSwarmConnect() {
   swarmFeedName = document.getElementById('swarm-feed-name');
   swarmFeedRejectBtn = document.getElementById('swarm-feed-reject');
   swarmFeedApproveBtn = document.getElementById('swarm-feed-approve');
+
+  swarmFeedUnlock = document.getElementById('swarm-feed-unlock');
+  swarmFeedTouchIdBtn = document.getElementById('swarm-feed-touchid-btn');
+  swarmFeedPasswordLink = document.getElementById('swarm-feed-password-link');
+  swarmFeedPasswordSection = document.getElementById('swarm-feed-password-section');
+  swarmFeedPasswordInput = document.getElementById('swarm-feed-password-input');
+  swarmFeedPasswordSubmit = document.getElementById('swarm-feed-password-submit');
+  swarmFeedUnlockError = document.getElementById('swarm-feed-unlock-error');
 
   registerScreenHider(() => {
     const wasVisible = swarmFeedScreen && !swarmFeedScreen.classList.contains('hidden');
@@ -414,6 +431,28 @@ function setupSwarmFeedScreen() {
       closeSwarmFeedApproval();
     });
   }
+
+  if (swarmFeedTouchIdBtn) {
+    swarmFeedTouchIdBtn.addEventListener('click', handleFeedTouchIdUnlock);
+  }
+
+  if (swarmFeedPasswordSubmit) {
+    swarmFeedPasswordSubmit.addEventListener('click', handleFeedPasswordUnlock);
+  }
+
+  if (swarmFeedPasswordInput) {
+    swarmFeedPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleFeedPasswordUnlock();
+    });
+  }
+
+  if (swarmFeedPasswordLink) {
+    swarmFeedPasswordLink.addEventListener('click', () => {
+      swarmFeedPasswordSection?.classList.remove('hidden');
+      swarmFeedPasswordLink?.classList.add('hidden');
+      swarmFeedPasswordInput?.focus();
+    });
+  }
 }
 
 /**
@@ -447,12 +486,118 @@ export async function showSwarmFeedApproval(permissionKey, params, resolve, reje
   swarmFeedScreen?.classList.remove('hidden');
 
   openSidebarPanel();
+
+  // Check vault unlock status (feed signing requires vault access)
+  checkFeedUnlockStatus();
+}
+
+async function checkFeedUnlockStatus() {
+  try {
+    const status = await window.identity.getStatus();
+
+    if (status.isUnlocked) {
+      swarmFeedUnlock?.classList.add('hidden');
+      if (swarmFeedApproveBtn) swarmFeedApproveBtn.disabled = false;
+      return;
+    }
+
+    swarmFeedUnlock?.classList.remove('hidden');
+    if (swarmFeedApproveBtn) swarmFeedApproveBtn.disabled = true;
+
+    const canUseTouchId = await window.quickUnlock.canUseTouchId();
+    const touchIdEnabled = await window.quickUnlock.isEnabled();
+    const hasTouchId = canUseTouchId && touchIdEnabled;
+
+    const vaultMeta = await window.identity.getVaultMeta();
+    const userKnowsPassword = vaultMeta?.userKnowsPassword ?? true;
+
+    if (swarmFeedTouchIdBtn) {
+      swarmFeedTouchIdBtn.classList.toggle('hidden', !hasTouchId);
+    }
+
+    if (hasTouchId && userKnowsPassword) {
+      swarmFeedPasswordLink?.classList.remove('hidden');
+      swarmFeedPasswordSection?.classList.add('hidden');
+    } else if (userKnowsPassword) {
+      swarmFeedPasswordLink?.classList.add('hidden');
+      swarmFeedPasswordSection?.classList.remove('hidden');
+    } else {
+      swarmFeedPasswordLink?.classList.add('hidden');
+      swarmFeedPasswordSection?.classList.add('hidden');
+    }
+  } catch (err) {
+    console.error('[SwarmConnect] Failed to check vault status:', err);
+    swarmFeedUnlock?.classList.remove('hidden');
+    swarmFeedTouchIdBtn?.classList.add('hidden');
+    swarmFeedPasswordLink?.classList.add('hidden');
+    swarmFeedPasswordSection?.classList.remove('hidden');
+  }
+}
+
+async function handleFeedTouchIdUnlock() {
+  try {
+    const result = await window.quickUnlock.unlock();
+    if (!result.success) {
+      throw new Error(result.error || 'Touch ID failed');
+    }
+
+    const unlockResult = await window.identity.unlock(result.password);
+    if (!unlockResult.success) {
+      throw new Error(unlockResult.error || 'Failed to unlock vault');
+    }
+
+    swarmFeedUnlock?.classList.add('hidden');
+    if (swarmFeedApproveBtn) swarmFeedApproveBtn.disabled = false;
+    hideFeedUnlockError();
+  } catch (err) {
+    console.error('[SwarmConnect] Feed Touch ID unlock failed:', err);
+    if (err.message !== 'Touch ID cancelled') {
+      showFeedUnlockError(err.message || 'Touch ID failed');
+    }
+  }
+}
+
+async function handleFeedPasswordUnlock() {
+  const password = swarmFeedPasswordInput?.value;
+  if (!password) return;
+
+  try {
+    const result = await window.identity.unlock(password);
+    if (!result.success) {
+      throw new Error(result.error || 'Incorrect password');
+    }
+
+    swarmFeedUnlock?.classList.add('hidden');
+    if (swarmFeedApproveBtn) swarmFeedApproveBtn.disabled = false;
+    if (swarmFeedPasswordInput) swarmFeedPasswordInput.value = '';
+    hideFeedUnlockError();
+  } catch (err) {
+    console.error('[SwarmConnect] Feed password unlock failed:', err);
+    showFeedUnlockError(err.message || 'Failed to unlock');
+  }
+}
+
+function showFeedUnlockError(msg) {
+  if (swarmFeedUnlockError) {
+    swarmFeedUnlockError.textContent = msg;
+    swarmFeedUnlockError.classList.remove('hidden');
+  }
+}
+
+function hideFeedUnlockError() {
+  if (swarmFeedUnlockError) {
+    swarmFeedUnlockError.textContent = '';
+    swarmFeedUnlockError.classList.add('hidden');
+  }
 }
 
 function closeSwarmFeedApproval() {
   swarmFeedScreen?.classList.add('hidden');
   walletState.identityView?.classList.remove('hidden');
   swarmFeedPending = null;
+  // Reset unlock state
+  if (swarmFeedPasswordInput) swarmFeedPasswordInput.value = '';
+  hideFeedUnlockError();
 }
 
 async function approveSwarmFeed() {
