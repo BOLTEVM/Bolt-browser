@@ -481,6 +481,9 @@ export async function showSwarmFeedApproval(permissionKey, params, resolve, reje
   const defaultRadio = document.querySelector(`input[name="swarm-feed-identity"][value="${defaultMode}"]`);
   if (defaultRadio) defaultRadio.checked = true;
 
+  // Disable Allow until vault status is confirmed
+  if (swarmFeedApproveBtn) swarmFeedApproveBtn.disabled = true;
+
   hideAllSubscreens();
   walletState.identityView?.classList.add('hidden');
   swarmFeedScreen?.classList.remove('hidden');

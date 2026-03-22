@@ -2765,8 +2765,13 @@
   color: #fff;
 }
 
-.swarm-connect-approve-btn:hover {
+.swarm-connect-approve-btn:hover:not(:disabled) {
   background: #d97706;
+}
+
+.swarm-connect-approve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ============================================
