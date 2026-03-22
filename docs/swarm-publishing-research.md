@@ -1626,7 +1626,7 @@ Startup UX — DONE:
 - **xDAI in Bee wallet appears idle**: the xDAI is a gas reserve for on-chain Swarm operations (stamp purchases, chequebook deposits, extensions). Gas on Gnosis is very cheap so it depletes slowly, but it IS being used.
 - **Bee wallet not in wallet dropdown**: the Bee wallet is a system identity with a different derivation path, not suitable for dApp connections or user spending. It's displayed in the Nodes tab instead.
 
-### Next: Milestone 3 — `window.swarm` Provider (Narrow Scope)
+### Milestone 3 — `window.swarm` Provider — COMPLETE
 
 #### Strategic rationale
 
@@ -2090,59 +2090,24 @@ The key split: `swarm:provider-execute` is the authoritative execution channel. 
 
 Sequenced for incremental testability. Each WP produces a testable artifact.
 
-**WP3-A: Origin normalization + permission store + main-process provider IPC**
+All work packages completed:
 
-The foundation. Build the enforcement layer first, test it in isolation.
+- ~~**WP3-A**: Origin normalization, permission store, main-process provider IPC~~ — done
+- ~~**WP3-B**: Provider injection, `swarm_requestAccess`, `swarm_getCapabilities`~~ — done
+- ~~**WP3-C**: `swarm_publishData` with per-publish approval~~ — done
+- ~~**WP3-D**: `swarm_publishFiles` + `swarm_getUploadStatus` with tag ownership~~ — done
+- ~~**WP3-E**: Disconnect flow, tab-switch banner updates, modal overlay fix~~ — done
 
-- Extract origin normalization to a shared module (`src/shared/origin-utils.js`) — used by both renderer and main process. Canonical rules from the origin normalization table above.
-- `swarm-permissions.js` (main process): CRUD, disk persistence, IPC handlers. Same pattern as `dapp-permissions.js`.
-- `swarm-provider-ipc.js` (main process): register `swarm:provider-execute` handler. Method dispatch, origin re-derivation, permission checks, param validation, size limits, pre-flight checks. At this point, publish methods return mock success (no actual bee-js calls yet) — the goal is to test the enforcement layer.
-- IPC channels in `ipc-channels.js`.
-- Preload bindings in `preload.js`.
-- **Tests**: permission CRUD, origin normalization for all protocol types, param validation, size limit enforcement, pre-flight check failure modes.
-
-**WP3-B: Provider injection + `swarm_requestAccess` + `swarm_getCapabilities`**
-
-Wire up the page-facing API and the connection handshake.
-
-- Add `window.swarm` to `webview-preload.js` — script-tag injection with postMessage bridge (same pattern as `window.ethereum`). Single `request({ method, params })` entry point with convenience wrappers.
-- Add preload-side `FREEDOM_SWARM_REQUEST` / `FREEDOM_SWARM_RESPONSE` message bridge.
-- Add `swarm:provider-request` listener in `tabs.js` `setupWebviewProvider()`.
-- `swarm-provider.js` (renderer): handle incoming requests, show connect prompt, forward to main via `swarm:provider-execute`.
-- `swarm-connect.js` (renderer UI): connection approval sidebar screen. Shows origin, capabilities, resource warning. Allow / Cancel.
-- Swarm connection banner in sidebar (parallel to dApp connection banner).
-- Wire `swarm_getCapabilities` to coarse node status check (main process queries node mode + stamp availability, returns `canPublish` + `reason` + `limits`).
-- **Tests**: provider injection in webview, requestAccess → prompt → grant → permission persisted, getCapabilities returns correct state.
-
-**WP3-C: `swarm_publishData`**
-
-The simplest publish path. Proves the full flow end-to-end.
-
-- Wire `swarm_publishData` through the main-process enforcement layer to existing `publishData` in `publish-service.js`.
-- Main process: decode base64/string → validate content type → validate size → call `publishData` → return `{ reference, bzzUrl }`.
-- Publish approval UI: sidebar prompt showing origin, content type, human-readable size. Publish / Cancel.
-- Record in publish history (existing infrastructure).
-- **Tests**: full flow mock (page request → permission check → approval → publish → result), size limit rejection, missing contentType rejection, unauthorized rejection.
-
-**WP3-D: `swarm_publishFiles` + `swarm_getUploadStatus`**
-
-Multi-file publishing with progress tracking.
-
-- `publishFilesFromContent()` in `publish-service.js`: accepts `[{ path, buffer, contentType }]` array, creates temp dir, writes files, calls existing `publishDirectory`, cleans up.
-- Main process enforcement: decode all file bytes, validate paths (relative, no `..`, no absolute), enforce total size + file count limits, validate indexDocument matches a file path.
-- Wire `swarm_getUploadStatus` — main process validates tagUid was issued to the requesting origin (tag-to-origin map).
-- Publish approval UI: shows file count, total size, file names/paths.
-- **Tests**: multi-file upload, path validation (reject `../etc/passwd`), temp dir cleanup on failure, tag ownership validation.
-
-**WP3-E: Prompt/revocation polish + integration tests**
-
-Final polish and end-to-end verification.
-
-- Revocation: disconnect button in Swarm connection banner, emits `disconnect` event to page.
-- Edge cases: what happens when node stops mid-upload, when stamps expire during upload, when user revokes mid-request.
-- Integration tests: full flow from page `window.swarm.request()` through to Bee API mock.
-- Origin normalization integration tests: ENS app publishes, bzz:// app publishes, HTTPS app publishes — permissions are keyed correctly.
-- **Tests**: revocation flow, concurrent requests from same origin, cross-origin tag rejection, node-down during publish.
+Implementation highlights:
+- All 5 provider methods live and end-to-end tested
+- 49 provider enforcement tests (path validation, tag ownership, error codes, Buffer normalization)
+- Permission/approval screens use `position: absolute` overlay (`.sidebar-modal`) to prevent tab-switch interaction during prompts
+- Swarm connection banner updates on tab switch (via `setActiveWebview`)
+- Disconnect emits `disconnect` event to active webview
+- `publishData` uses shared `normalizeBytes` for consistent `{ type: 'Buffer', data: [...] }` handling
+- Tag ownership cleaned up on upload completion (`done: true`)
+- `contentType` on `publishFiles` is advisory — preserved in chain but not applied (bee-js infers from extension)
+- Test page at `docs/swarm-provider-test/index.html` covers all methods including multi-file site publish with progress tracking
 
 #### Design decisions log
 
@@ -2172,10 +2137,10 @@ Final polish and end-to-end verification.
 
 13. **Future event shape: EIP-1193 style, but not yet.** v1 is polling-only (`getUploadStatus`). When we add real-time events (upload complete, feed updated, permission revoked), they will use the existing `on(event, handler)` pattern already wired into the provider. The `swarm:provider-event` IPC channel is reserved for this. Planned event names: `connect`, `disconnect`, `uploadComplete`. This note exists to prevent awkward API drift — the event emitter is already on the provider object, we just don't emit anything yet.
 
-### Later: Milestones 4-5
+### Next: Milestones 4-5
 
-- Milestone 4: Mutable publishing and feed identities (depends on Milestone 3)
-- Milestone 5: Durability and advanced capabilities (depends on Milestone 4)
+- **Milestone 4: Mutable publishing and feed identities** — app-scoped publisher key derivation (dedicated HD path), feed creation/update via bee-js SOC/feeds API, feed manifests for stable URLs, `swarm_createFeed` / `swarm_updateFeed` provider methods, optional ENS guidance
+- **Milestone 5: Durability and advanced capabilities** — background pinned-content retrievability checks, reupload pinned data, ACT-based private sharing, optional manifest inspection
 
 ## References
 
@@ -2210,7 +2175,14 @@ Final polish and end-to-end verification.
 - `src/main/swarm/stamp-service.js` — stamp operations (list, cost, buy, extend) with Freedom batch model
 - `src/main/swarm/publish-service.js` — upload operations (data, file stream, directory async walk), file picker IPC
 - `src/main/swarm/publish-history.js` — versioned JSON store for recent publishes (100-entry cap)
-- `src/main/webview-preload.js` — `freedomAPI.swarm.*` namespace for internal pages
+- `src/main/swarm/swarm-permissions.js` — per-origin Swarm permission store (CRUD, disk persistence)
+- `src/main/swarm/swarm-provider-ipc.js` — main-process provider enforcement (origin validation, param validation, size limits, pre-flight, tag ownership)
+- `src/renderer/lib/swarm-provider.js` — renderer-side provider request handler (approval UI orchestration)
+- `src/renderer/lib/wallet/swarm-connect.js` — Swarm connection + publish approval UI (connection banner, disconnect flow)
+- `src/shared/origin-utils.js` — shared origin normalization for dweb protocols
+- `src/shared/ipc-channels.js` — IPC channel constants including Swarm provider channels
+- `src/main/webview-preload.js` — `window.swarm` provider injection + `freedomAPI.swarm.*` namespace for internal pages
+- `docs/swarm-provider-test/index.html` — test page for manual end-to-end verification of all provider methods
 - `src/renderer/pages/publish.html` — `freedom://publish` internal app page
 - `src/renderer/pages/scripts/publish.js` — publish page logic (file/folder/text, progress, history)
 - `src/renderer/pages/styles/publish.css` — publish page styling
