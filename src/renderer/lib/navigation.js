@@ -68,8 +68,7 @@ let bookmarkBarOverride = false;
 // Track previous active tab ID to save address bar state when switching
 let previousActiveTabId = null;
 
-// Helper: check if URL is the home/new-tab page
-const isHomePage = (url) => url === homeUrlNormalized || url === homeUrl || !url;
+
 
 // Last recorded URL to avoid duplicates in quick succession
 let lastRecordedUrl = null;

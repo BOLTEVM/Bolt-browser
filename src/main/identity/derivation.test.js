@@ -2,7 +2,7 @@
  * Tests for unified key derivation
  */
 
-import {
+const {
   createMnemonic,
   isValidMnemonic,
   deriveAllKeys,
@@ -10,7 +10,7 @@ import {
   deriveEd25519Key,
   getSeed,
   PATHS,
-} from './derivation.js';
+} = require('./derivation');
 
 // Well-known test mnemonic (DO NOT use in production!)
 // This is the standard "abandon" test vector used across the ecosystem

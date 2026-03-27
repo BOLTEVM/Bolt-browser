@@ -12,6 +12,8 @@ let swarmModeBadge;
 let swarmStatusBadge;
 let swarmStampsCount;
 let swarmStampsSummary;
+let swarmBalanceXdaiEl;
+let swarmBalanceXbzzEl;
 let walletNotification;
 let walletNotificationText;
 let walletNotificationAction;
@@ -25,6 +27,8 @@ export function initNodeStatus() {
   swarmStatusBadge = document.getElementById('swarm-status-badge');
   swarmStampsCount = document.getElementById('swarm-stamps-count');
   swarmStampsSummary = document.getElementById('swarm-stamps-summary');
+  swarmBalanceXdaiEl = document.getElementById('swarm-balance-xdai');
+  swarmBalanceXbzzEl = document.getElementById('swarm-balance-xbzz');
 
   // Notification elements
   walletNotification = document.getElementById('wallet-notification');
@@ -147,10 +151,10 @@ async function fetchInitialNodeStatus() {
   }
 }
 
-function updateSwarmStatus(status, error) {
+function updateSwarmStatus(status, _error) {
   if (swarmStatusBadge) {
-    let statusText = 'Stopped';
-    let statusValue = 'stopped';
+    let statusText;
+    let statusValue;
 
     switch (status) {
       case 'running':
@@ -206,11 +210,11 @@ async function fetchSwarmMode() {
   }
 }
 
-function updateIpfsStatus(status, error) {
+function updateIpfsStatus(status, _error) {
   const badge = document.getElementById('ipfs-status-badge');
   if (badge) {
-    let statusText = 'Stopped';
-    let statusValue = 'stopped';
+    let statusText;
+    let statusValue;
 
     switch (status) {
       case 'running':
@@ -241,11 +245,11 @@ function updateIpfsStatus(status, error) {
   }
 }
 
-function updateRadicleStatus(status, error) {
+function updateRadicleStatus(status, _error) {
   const badge = document.getElementById('radicle-status-badge');
   if (badge) {
-    let statusText = 'Stopped';
-    let statusValue = 'stopped';
+    let statusText;
+    let statusValue;
 
     switch (status) {
       case 'running':
