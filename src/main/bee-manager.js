@@ -114,7 +114,6 @@ mainnet: true
 full-node: false
 blockchain-rpc-endpoint: ${isLightNode ? `"${blockchainRpcEndpoint}"` : '""'}
 cors-allowed-origins: "null"
-use-postage-snapshot: false
 skip-postage-snapshot: true
 resolver-options: https://cloudflare-eth.com
 storage-incentives-enable: false
