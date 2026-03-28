@@ -8,6 +8,7 @@ import { walletState, registerScreenHider, hideAllSubscreens } from './wallet-st
 import { escapeHtml } from './wallet-utils.js';
 import { open as openSidebarPanel, isVisible as isSidebarVisible } from '../sidebar.js';
 import { getActiveWebview, emitAccountsChanged, getPermissionKey } from '../dapp-provider.js';
+import { showDappPermissions } from './permission-manage.js';
 
 // DOM references
 let dappConnectScreen;
@@ -28,6 +29,8 @@ let dappConnectionBanner;
 let dappConnectionSite;
 let dappConnectionWallet;
 let dappConnectionDisconnect;
+let dappAutoApproveBadge;
+let dappConnectionManage;
 
 // Local state
 let dappConnectPending = null;
@@ -54,6 +57,8 @@ export function initDappConnect() {
   dappConnectionSite = document.getElementById('dapp-connection-site');
   dappConnectionWallet = document.getElementById('dapp-connection-wallet');
   dappConnectionDisconnect = document.getElementById('dapp-connection-disconnect');
+  dappAutoApproveBadge = document.getElementById('dapp-auto-approve-badge');
+  dappConnectionManage = document.getElementById('dapp-connection-manage');
 
   // Register screen hider
   registerScreenHider(() => dappConnectScreen?.classList.add('hidden'));
@@ -93,6 +98,14 @@ function setupDappConnectScreen() {
 
   if (dappConnectionDisconnect) {
     dappConnectionDisconnect.addEventListener('click', disconnectCurrentDapp);
+  }
+
+  if (dappConnectionManage) {
+    dappConnectionManage.addEventListener('click', () => {
+      if (currentBannerPermissionKey) {
+        showDappPermissions(currentBannerPermissionKey);
+      }
+    });
   }
 
   document.addEventListener('sidebar-opened', () => {
@@ -320,6 +333,10 @@ export async function updateConnectionBanner(permissionKey = null) {
       if (dappConnectionWallet) {
         dappConnectionWallet.textContent = walletName;
       }
+
+      const hasAutoApprove = permission.autoApprove?.signing
+        || (permission.autoApprove?.transactions?.length > 0);
+      dappAutoApproveBadge?.classList.toggle('hidden', !hasAutoApprove);
 
       currentBannerPermissionKey = permissionKey;
       dappConnectionBanner.classList.remove('hidden');

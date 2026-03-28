@@ -2732,6 +2732,138 @@
   margin-top: 1px;
 }
 
+.auto-approve-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  background: var(--accent-muted, rgba(99, 102, 241, 0.15));
+  color: var(--accent, #6366f1);
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+.dapp-connection-info,
+.swarm-connection-info {
+  cursor: pointer;
+}
+
+.perms-site {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  padding: 8px 0 16px;
+  word-break: break-all;
+}
+
+.perms-section {
+  margin-bottom: 16px;
+}
+
+.perms-section-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.perms-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+}
+
+.perms-label {
+  font-size: 13px;
+  color: var(--text-primary, #ccc);
+}
+
+.perms-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perms-empty {
+  font-size: 12px;
+  color: var(--text-tertiary, #666);
+  padding: 8px 0;
+}
+
+.perms-tx-rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+}
+
+.perms-tx-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.perms-tx-addr,
+.perms-tx-selector {
+  font-size: 11px;
+  font-family: var(--mono, monospace);
+  color: var(--text-secondary, #aaa);
+}
+
+.perms-tx-chain {
+  font-size: 10px;
+  color: var(--text-tertiary, #666);
+}
+
+.perms-tx-remove {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, #aaa);
+  cursor: pointer;
+}
+
+.perms-tx-remove:hover {
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+}
+
+.perms-disconnect-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 24px;
+  border: 1px solid var(--danger, #ef4444);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--danger, #ef4444);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.perms-disconnect-btn:hover {
+  background: var(--danger, #ef4444);
+  color: #fff;
+}
+
+.perms-actions {
+  margin-top: auto;
+}
+
 .auto-approve-checkbox {
   display: flex;
   align-items: flex-start;

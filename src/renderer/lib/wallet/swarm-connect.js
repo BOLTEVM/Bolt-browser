@@ -9,6 +9,7 @@ import { walletState, registerScreenHider, hideAllSubscreens } from './wallet-st
 import { formatBytes } from './wallet-utils.js';
 import { open as openSidebarPanel, isVisible as isSidebarVisible } from '../sidebar.js';
 import { getPermissionKey, getActiveWebview } from '../dapp-provider.js';
+import { showSwarmPermissions } from './permission-manage.js';
 
 // DOM references — connect screen
 let swarmConnectScreen;
@@ -21,6 +22,8 @@ let swarmConnectApproveBtn;
 let swarmConnectionBanner;
 let swarmConnectionSite;
 let swarmConnectionDisconnect;
+let swarmAutoApproveBadge;
+let swarmConnectionManage;
 
 // DOM references — publish approval screen
 let swarmPublishScreen;
@@ -71,6 +74,8 @@ export function initSwarmConnect() {
   swarmConnectionBanner = document.getElementById('swarm-connection-banner');
   swarmConnectionSite = document.getElementById('swarm-connection-site');
   swarmConnectionDisconnect = document.getElementById('swarm-connection-disconnect');
+  swarmAutoApproveBadge = document.getElementById('swarm-auto-approve-badge');
+  swarmConnectionManage = document.getElementById('swarm-connection-manage');
 
   swarmPublishScreen = document.getElementById('sidebar-swarm-publish-approve');
   swarmPublishBackBtn = document.getElementById('swarm-publish-back');
@@ -156,6 +161,14 @@ function setupSwarmConnectScreen() {
 
   if (swarmConnectionDisconnect) {
     swarmConnectionDisconnect.addEventListener('click', disconnectCurrentSwarmApp);
+  }
+
+  if (swarmConnectionManage) {
+    swarmConnectionManage.addEventListener('click', () => {
+      if (currentBannerPermissionKey) {
+        showSwarmPermissions(currentBannerPermissionKey);
+      }
+    });
   }
 
   document.addEventListener('sidebar-opened', () => {
@@ -257,6 +270,9 @@ export async function updateSwarmConnectionBanner(permissionKey = null) {
       if (swarmConnectionSite) {
         swarmConnectionSite.textContent = permissionKey;
       }
+      const hasAutoApprove = permission.autoApprove?.publish || permission.autoApprove?.feeds;
+      swarmAutoApproveBadge?.classList.toggle('hidden', !hasAutoApprove);
+
       currentBannerPermissionKey = permissionKey;
       swarmConnectionBanner.classList.remove('hidden');
     } else {

@@ -28,11 +28,13 @@ import { initStampManager, closeStampManager } from './wallet/stamp-manager.js';
 import { initChequebookDeposit, closeChequebookDeposit } from './wallet/chequebook-deposit.js';
 import { initSwarmConnect, showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval } from './wallet/swarm-connect.js';
 import { initVaultUnlock, showVaultUnlock } from './wallet/vault-unlock.js';
+import { initPermissionManage, showDappPermissions, showSwarmPermissions } from './wallet/permission-manage.js';
 import { initPublisherIdentities, closePublisherIdentities } from './wallet/publisher-identities.js';
 
 // Re-export public API consumed by dapp-provider.js, swarm-provider.js, and index.js
 export { showDappConnect, updateConnectionBanner, showDappTxApproval, showDappSignApproval };
 export { showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval, showVaultUnlock };
+export { showDappPermissions, showSwarmPermissions };
 export { getSelectedChainId, setSelectedChainId };
 
 // DOM references owned by the coordinator
@@ -65,6 +67,7 @@ export function initWalletUi() {
   initDappConnect();
   initSwarmConnect();
   initVaultUnlock();
+  initPermissionManage();
   initDappTx();
   initDappSign();
   initSend();

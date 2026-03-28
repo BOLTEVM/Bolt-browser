@@ -699,12 +699,13 @@
                 <div class="sidebar-section">
                   <!-- dApp Connection Banner (shown when current tab is connected) -->
                   <div class="dapp-connection-banner hidden" id="dapp-connection-banner">
-                    <div class="dapp-connection-info">
+                    <div class="dapp-connection-info" id="dapp-connection-manage" title="Manage permissions">
                       <span class="dapp-connection-indicator"></span>
                       <span class="dapp-connection-text">
                         <span class="dapp-connection-site" id="dapp-connection-site">site.eth</span>
                         <span class="dapp-connection-wallet" id="dapp-connection-wallet">Main Wallet</span>
                       </span>
+                      <span class="auto-approve-badge hidden" id="dapp-auto-approve-badge">auto</span>
                     </div>
                     <button type="button" class="dapp-connection-disconnect" id="dapp-connection-disconnect" title="Disconnect">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -715,12 +716,13 @@
 
                   <!-- Swarm Connection Banner (shown when current tab has Swarm publish access) -->
                   <div class="swarm-connection-banner hidden" id="swarm-connection-banner">
-                    <div class="swarm-connection-info">
+                    <div class="swarm-connection-info" id="swarm-connection-manage" title="Manage permissions">
                       <span class="swarm-connection-indicator"></span>
                       <span class="swarm-connection-text">
                         <span class="swarm-connection-label">Publishing via Swarm</span>
                         <span class="swarm-connection-site" id="swarm-connection-site">site.eth</span>
                       </span>
+                      <span class="auto-approve-badge hidden" id="swarm-auto-approve-badge">auto</span>
                     </div>
                     <button type="button" class="swarm-connection-disconnect" id="swarm-connection-disconnect" title="Revoke access">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2166,6 +2168,75 @@
 
                 <div class="swarm-connect-actions">
                   <button type="button" class="swarm-connect-reject-btn" id="vault-unlock-cancel">Cancel</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Wallet Permission Management sub-screen -->
+            <div id="sidebar-dapp-permissions" class="sidebar-subscreen hidden">
+              <div class="subscreen-header">
+                <button type="button" class="subscreen-back-btn" id="dapp-perms-back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                  <span>Back</span>
+                </button>
+                <h3 class="subscreen-title">Wallet Permissions</h3>
+              </div>
+              <div class="subscreen-content">
+                <div class="perms-site" id="dapp-perms-site">site.eth</div>
+                <div class="perms-section">
+                  <div class="perms-toggle-row">
+                    <span class="perms-label">Auto-approve signatures</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="dapp-perms-signing-toggle" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                <div class="perms-section">
+                  <div class="perms-section-header">Auto-approved contract calls</div>
+                  <div id="dapp-perms-tx-list" class="perms-tx-list">
+                    <div class="perms-empty">No auto-approved calls</div>
+                  </div>
+                </div>
+                <div class="perms-actions">
+                  <button type="button" class="perms-disconnect-btn" id="dapp-perms-disconnect">Disconnect</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Swarm Permission Management sub-screen -->
+            <div id="sidebar-swarm-permissions" class="sidebar-subscreen hidden">
+              <div class="subscreen-header">
+                <button type="button" class="subscreen-back-btn" id="swarm-perms-back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                  <span>Back</span>
+                </button>
+                <h3 class="subscreen-title">Swarm Permissions</h3>
+              </div>
+              <div class="subscreen-content">
+                <div class="perms-site" id="swarm-perms-site">site.eth</div>
+                <div class="perms-section">
+                  <div class="perms-toggle-row">
+                    <span class="perms-label">Auto-approve publishes</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="swarm-perms-publish-toggle" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="perms-toggle-row">
+                    <span class="perms-label">Auto-approve feed operations</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="swarm-perms-feeds-toggle" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                <div class="perms-actions">
+                  <button type="button" class="perms-disconnect-btn" id="swarm-perms-disconnect">Disconnect</button>
                 </div>
               </div>
             </div>
