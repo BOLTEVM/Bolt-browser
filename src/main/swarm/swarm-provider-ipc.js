@@ -33,6 +33,17 @@ const { getBeeApiUrl } = require('../service-registry');
 const { getDerivedKeys, getPublisherKey } = require('../identity-manager');
 const log = require('electron-log');
 
+function resetVaultAutoLockTimer() {
+  try {
+    const identity = require('../identity');
+    if (identity.isUnlocked()) {
+      identity.resetAutoLockTimer();
+    }
+  } catch {
+    // Non-critical — vault module may not be loaded
+  }
+}
+
 const LIMITS = {
   maxDataBytes: 10 * 1024 * 1024,    // 10 MB
   maxFilesBytes: 50 * 1024 * 1024,   // 50 MB
@@ -102,11 +113,15 @@ async function executeSwarmMethod(method, params, origin) {
     }
 
     if (method === 'swarm_publishData') {
-      return handlePublishData(params, normalizedOrigin);
+      const result = await handlePublishData(params, normalizedOrigin);
+      if (result.result) resetVaultAutoLockTimer();
+      return result;
     }
 
     if (method === 'swarm_publishFiles') {
-      return handlePublishFiles(params, normalizedOrigin);
+      const result = await handlePublishFiles(params, normalizedOrigin);
+      if (result.result) resetVaultAutoLockTimer();
+      return result;
     }
 
     if (method === 'swarm_getUploadStatus') {
@@ -114,11 +129,15 @@ async function executeSwarmMethod(method, params, origin) {
     }
 
     if (method === 'swarm_createFeed') {
-      return handleCreateFeed(params, normalizedOrigin);
+      const result = await handleCreateFeed(params, normalizedOrigin);
+      if (result.result) resetVaultAutoLockTimer();
+      return result;
     }
 
     if (method === 'swarm_updateFeed') {
-      return handleUpdateFeed(params, normalizedOrigin);
+      const result = await handleUpdateFeed(params, normalizedOrigin);
+      if (result.result) resetVaultAutoLockTimer();
+      return result;
     }
 
     return { error: ERRORS.INTERNAL_ERROR };

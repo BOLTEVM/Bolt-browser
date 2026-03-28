@@ -27,11 +27,12 @@ import { initPublishSetup, closePublishSetup } from './wallet/publish-setup.js';
 import { initStampManager, closeStampManager } from './wallet/stamp-manager.js';
 import { initChequebookDeposit, closeChequebookDeposit } from './wallet/chequebook-deposit.js';
 import { initSwarmConnect, showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval } from './wallet/swarm-connect.js';
+import { initVaultUnlock, showVaultUnlock } from './wallet/vault-unlock.js';
 import { initPublisherIdentities, closePublisherIdentities } from './wallet/publisher-identities.js';
 
 // Re-export public API consumed by dapp-provider.js, swarm-provider.js, and index.js
 export { showDappConnect, updateConnectionBanner, showDappTxApproval, showDappSignApproval };
-export { showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval };
+export { showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval, showVaultUnlock };
 export { getSelectedChainId, setSelectedChainId };
 
 // DOM references owned by the coordinator
@@ -63,6 +64,7 @@ export function initWalletUi() {
   initRpcSettings();
   initDappConnect();
   initSwarmConnect();
+  initVaultUnlock();
   initDappTx();
   initDappSign();
   initSend();

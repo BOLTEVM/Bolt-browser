@@ -12,7 +12,7 @@
 
 import { getPermissionKey } from './dapp-provider.js';
 import { getDisplayUrlForWebview } from './tabs.js';
-import { showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval } from './wallet-ui.js';
+import { showSwarmConnect, updateSwarmConnectionBanner, showSwarmPublishApproval, showSwarmFeedApproval, showVaultUnlock } from './wallet-ui.js';
 
 const ERRORS = {
   USER_REJECTED: { code: 4001, message: 'User rejected the request' },
@@ -90,15 +90,22 @@ async function handleSwarmRequest(webview, request) {
       ]);
       const vaultLocked = !vaultStatus?.isUnlocked;
 
-      // Show approval when: first-time/reconnect, vault locked (TODO WP2: dedicated unlock screen),
-      // or no auto-approve granted. Skip UI only when all three are satisfied.
-      const canSkip = hasFeedAccess && !vaultLocked
-        && await window.swarmPermissions.getAutoApprove(permissionKey, 'feeds');
-
-      if (!canSkip) {
+      if (!hasFeedAccess) {
+        // First time or reconnect: full approval (identity choice + unlock)
         await new Promise((resolve, reject) => {
           showSwarmFeedApproval(permissionKey, params, resolve, reject);
         });
+      } else if (vaultLocked) {
+        // Has access but vault locked: minimal unlock prompt
+        await showVaultUnlock(permissionKey);
+      } else {
+        // Has access + vault unlocked: check auto-approve
+        const feedAutoApproved = await window.swarmPermissions.getAutoApprove(permissionKey, 'feeds');
+        if (!feedAutoApproved) {
+          await new Promise((resolve, reject) => {
+            showSwarmFeedApproval(permissionKey, params, resolve, reject);
+          });
+        }
       }
 
       result = await executeWithPermission(method, params, permissionKey);
