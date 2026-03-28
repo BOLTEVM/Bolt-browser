@@ -31,18 +31,8 @@ const { getOriginEntry, getFeed, setFeed, updateFeedReference, hasFeedGrant } = 
 const { addEntry, updateEntry } = require('./publish-history');
 const { getBeeApiUrl } = require('../service-registry');
 const { getDerivedKeys, getPublisherKey } = require('../identity-manager');
+const { resetVaultAutoLockTimer } = require('../vault-timer');
 const log = require('electron-log');
-
-function resetVaultAutoLockTimer() {
-  try {
-    const identity = require('../identity');
-    if (identity.isUnlocked()) {
-      identity.resetAutoLockTimer();
-    }
-  } catch {
-    // Non-critical — vault module may not be loaded
-  }
-}
 
 const LIMITS = {
   maxDataBytes: 10 * 1024 * 1024,    // 10 MB

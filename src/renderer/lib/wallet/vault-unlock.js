@@ -75,6 +75,9 @@ export function initVaultUnlock() {
  */
 export function showVaultUnlock(permissionKey) {
   return new Promise((resolve, reject) => {
+    if (pending) {
+      pending.reject({ code: 4001, message: 'Superseded by new unlock request' });
+    }
     pending = { resolve, reject };
 
     if (siteLabel) siteLabel.textContent = permissionKey || 'Unknown';
@@ -110,8 +113,10 @@ async function checkUnlockMethods() {
       passwordLink?.classList.add('hidden');
       passwordSection?.classList.remove('hidden');
     } else {
+      // No Touch ID and user doesn't know password — show password field
+      // as a fallback (they may remember or reset)
       passwordLink?.classList.add('hidden');
-      passwordSection?.classList.add('hidden');
+      passwordSection?.classList.remove('hidden');
     }
   } catch (err) {
     console.error('[VaultUnlock] Failed to check unlock methods:', err);

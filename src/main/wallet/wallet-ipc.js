@@ -22,17 +22,7 @@ const {
 } = require('./transaction-service');
 const { loadIdentityModule, getActiveWalletIndex } = require('../identity-manager');
 const { getEffectiveRpcUrls } = require('./rpc-manager');
-
-function resetVaultAutoLockTimer() {
-  try {
-    const identity = require('../identity');
-    if (identity.isUnlocked()) {
-      identity.resetAutoLockTimer();
-    }
-  } catch {
-    // Non-critical
-  }
-}
+const { resetVaultAutoLockTimer } = require('../vault-timer');
 
 /**
  * Validate that an RPC URL is a known, trusted endpoint.
