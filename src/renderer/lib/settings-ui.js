@@ -14,6 +14,7 @@ let startIpfsAtLaunchCheckbox = null;
 let enableRadicleIntegrationCheckbox = null;
 let startRadicleRow = null;
 let startRadicleAtLaunchCheckbox = null;
+let enableIdentityWalletCheckbox = null;
 let autoUpdateCheckbox = null;
 let experimentalSection = null;
 let isWindows = false;
@@ -82,6 +83,7 @@ const saveSettings = async () => {
     startIpfsAtLaunch: startIpfsAtLaunchCheckbox?.checked ?? true,
     enableRadicleIntegration: isWindows ? false : (enableRadicleIntegrationCheckbox?.checked ?? false),
     startRadicleAtLaunch: isWindows ? false : (startRadicleAtLaunchCheckbox?.checked ?? false),
+    enableIdentityWallet: enableIdentityWalletCheckbox?.checked ?? false,
     autoUpdate: autoUpdateCheckbox?.checked ?? true,
   };
 
@@ -118,6 +120,7 @@ export const initSettings = async () => {
   enableRadicleIntegrationCheckbox = document.getElementById('enable-radicle-integration');
   startRadicleRow = document.getElementById('start-radicle-row');
   startRadicleAtLaunchCheckbox = document.getElementById('start-radicle-at-launch');
+  enableIdentityWalletCheckbox = document.getElementById('enable-identity-wallet');
   autoUpdateCheckbox = document.getElementById('auto-update');
   experimentalSection = document.getElementById('experimental-section');
 
@@ -137,6 +140,7 @@ export const initSettings = async () => {
     saveSettings();
   });
   startRadicleAtLaunchCheckbox?.addEventListener('change', saveSettings);
+  enableIdentityWalletCheckbox?.addEventListener('change', saveSettings);
   autoUpdateCheckbox?.addEventListener('change', saveSettings);
 
   settingsBtn?.addEventListener('click', async () => {
@@ -153,6 +157,8 @@ export const initSettings = async () => {
       currentRadicleIntegrationEnabled = settings.enableRadicleIntegration === true;
       if (startRadicleAtLaunchCheckbox)
         startRadicleAtLaunchCheckbox.checked = settings.startRadicleAtLaunch === true;
+      if (enableIdentityWalletCheckbox)
+        enableIdentityWalletCheckbox.checked = settings.enableIdentityWallet === true;
       if (autoUpdateCheckbox) autoUpdateCheckbox.checked = settings.autoUpdate !== false;
       updateRadicleSettingsVisibility();
     }

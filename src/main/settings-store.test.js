@@ -29,11 +29,14 @@ describe('settings-store', () => {
     expect(mod.loadSettings()).toEqual({
       theme: 'system',
       enableRadicleIntegration: false,
+      enableIdentityWallet: false,
       startBeeAtLaunch: true,
       startIpfsAtLaunch: true,
       startRadicleAtLaunch: false,
       autoUpdate: true,
       showBookmarkBar: false,
+      sidebarOpen: false,
+      sidebarWidth: 320,
     });
     expect(nativeTheme.themeSource).toBe('system');
   });

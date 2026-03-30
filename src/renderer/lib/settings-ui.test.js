@@ -229,6 +229,7 @@ describe('settings-ui', () => {
       startIpfsAtLaunch: true,
       enableRadicleIntegration: false,
       startRadicleAtLaunch: true,
+      enableIdentityWallet: false,
       autoUpdate: true,
     });
     expect(global.window.radicle.stop).toHaveBeenCalled();
@@ -243,6 +244,7 @@ describe('settings-ui', () => {
         startIpfsAtLaunch: true,
         enableRadicleIntegration: false,
         startRadicleAtLaunch: true,
+        enableIdentityWallet: false,
         autoUpdate: true,
       },
     });
@@ -290,6 +292,7 @@ describe('settings-ui', () => {
       startIpfsAtLaunch: false,
       enableRadicleIntegration: false,
       startRadicleAtLaunch: false,
+      enableIdentityWallet: false,
       autoUpdate: false,
     });
     expect(debugMocks.pushDebug).toHaveBeenCalledWith('Failed to save settings');
