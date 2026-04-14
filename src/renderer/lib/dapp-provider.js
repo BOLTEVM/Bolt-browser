@@ -12,6 +12,7 @@
 
 import { showDappConnect, getSelectedChainId, setSelectedChainId, updateConnectionBanner, showDappTxApproval, showDappSignApproval, showVaultUnlock, updateSwarmConnectionBanner } from './wallet-ui.js';
 import { extractSelector } from './wallet/dapp-tx.js';
+import { getPermissionKey } from './origin-utils.js';
 
 // Feature flag state
 let identityWalletEnabled = false;
@@ -53,58 +54,6 @@ const ERRORS = {
 function getDisplayUrl() {
   const addressInput = document.getElementById('address-input');
   return addressInput?.value || '';
-}
-
-/**
- * Extract the permission key from a display URL
- * This strips the URL to its "root" identifier:
- * - ipfs://QmABC123/path → ipfs://QmABC123
- * - bzz://abc123/page → bzz://abc123
- * - vitalik.eth/blog → vitalik.eth
- * - ipns://docs.ipfs.tech/guide → ipns://docs.ipfs.tech
- * - https://app.uniswap.org/swap → https://app.uniswap.org
- */
-function getPermissionKey(displayUrl) {
-  if (!displayUrl) return null;
-
-  const trimmed = displayUrl.trim();
-  if (!trimmed) return null;
-
-  // ENS name without protocol (e.g., 1inch.eth/path)
-  if (/^[a-z0-9-]+\.(eth|box)/i.test(trimmed)) {
-    return trimmed.split('/')[0].toLowerCase();
-  }
-
-  // ens:// protocol → extract ENS name (e.g., ens://1inch.eth/#/path → 1inch.eth)
-  const ensMatch = trimmed.match(/^ens:\/\/([^/#]+)/i);
-  if (ensMatch) {
-    return ensMatch[1].toLowerCase();
-  }
-
-  // dweb protocols: ipfs://CID/path → ipfs://CID
-  const dwebMatch = trimmed.match(/^(ipfs|bzz|ipns):\/\/([^/]+)/i);
-  if (dwebMatch) {
-    return `${dwebMatch[1].toLowerCase()}://${dwebMatch[2]}`;
-  }
-
-  // rad:// protocol
-  const radMatch = trimmed.match(/^rad:\/\/([^/]+)/i);
-  if (radMatch) {
-    return `rad://${radMatch[1]}`;
-  }
-
-  // Regular URL (https://host/path → https://host)
-  try {
-    const url = new URL(trimmed);
-    // Non-standard protocols return "null" for origin, fall back to trimmed
-    if (url.origin === 'null') {
-      return trimmed;
-    }
-    return url.origin;
-  } catch {
-    // If parsing fails, return as-is
-    return trimmed;
-  }
 }
 
 /**
