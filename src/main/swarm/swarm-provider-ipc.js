@@ -28,7 +28,7 @@ const { getPermission } = require('./swarm-permissions');
 const { publishData, publishFilesFromContent, getUploadStatus } = require('./publish-service');
 const { createFeed, updateFeed, writeFeedPayload, readFeedPayload, buildTopicString } = require('./feed-service');
 const { Topic } = require('@ethersphere/bee-js');
-const { getOriginEntry, getFeed, setFeed, updateFeedReference, hasFeedGrant } = require('./feed-store');
+const { getOriginEntry, getFeed, setFeed, updateFeedReference, hasFeedGrant, getAllFeeds } = require('./feed-store');
 const { addEntry, updateEntry } = require('./publish-history');
 const { getBeeApiUrl } = require('../service-registry');
 const { getDerivedKeys, getPublisherKey } = require('../identity-manager');
@@ -60,6 +60,7 @@ const KNOWN_METHODS = [
   'swarm_updateFeed',
   'swarm_writeFeedEntry',
   'swarm_readFeedEntry',
+  'swarm_listFeeds',
 ];
 
 // Tag ownership: tagUid → origin. Session-scoped, not persisted.
@@ -106,6 +107,16 @@ async function executeSwarmMethod(method, params, origin) {
     // users' activity feeds discovered on-chain).
     if (method === 'swarm_readFeedEntry') {
       return handleReadFeedEntry(params, normalizedOrigin);
+    }
+
+    // swarm_listFeeds: no permission required. Returns the feed metadata
+    // this origin has accumulated via createFeed. Feed coordinates are
+    // deterministic given (origin, name), so listing them isn't a leak;
+    // and the metadata is preserved across permission revocation by design
+    // (so a re-granted origin sees its prior feeds), so requiring permission
+    // here would just be friction without security benefit.
+    if (method === 'swarm_listFeeds') {
+      return handleListFeeds(normalizedOrigin);
     }
 
     // All other methods require permission
@@ -829,6 +840,33 @@ async function handleReadFeedEntry(params, origin) {
     log.error(`[SwarmProvider] readFeedEntry failed for ${origin}:`, err.message);
     return { error: { ...ERRORS.INTERNAL_ERROR, message: err.message } };
   }
+}
+
+/**
+ * Handle swarm_listFeeds: return the calling origin's feed records.
+ *
+ * Scoped to the caller — only feeds created under this origin are returned.
+ * No permission required (see dispatcher comment for rationale). Returns
+ * an empty array for origins with no feeds, including origins that have
+ * never granted permission and origins whose permission was revoked.
+ *
+ * Takes no params (origin alone determines the result). Any params supplied
+ * by the caller are silently ignored — kept lenient because this is
+ * introspection-only and adding a strict guard buys nothing.
+ */
+function handleListFeeds(origin) {
+  const feeds = getAllFeeds(origin);
+  const result = Object.entries(feeds).map(([name, feed]) => ({
+    name,
+    topic: feed.topic,
+    owner: feed.owner,
+    manifestReference: feed.manifestReference,
+    bzzUrl: `bzz://${feed.manifestReference}`,
+    createdAt: feed.createdAt,
+    lastUpdated: feed.lastUpdated,
+    lastReference: feed.lastReference,
+  }));
+  return { result };
 }
 
 /**

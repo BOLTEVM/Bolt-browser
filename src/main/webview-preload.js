@@ -653,6 +653,7 @@ try {
         updateFeed(params) { return this.request({ method: 'swarm_updateFeed', params: params }); },
         writeFeedEntry(params) { return this.request({ method: 'swarm_writeFeedEntry', params: params }); },
         readFeedEntry(params) { return this.request({ method: 'swarm_readFeedEntry', params: params }); },
+        listFeeds() { return this.request({ method: 'swarm_listFeeds' }); },
 
         on(event, handler) { if (eventListeners[event]) eventListeners[event].push(handler); return this; },
         removeListener(event, handler) {

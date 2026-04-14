@@ -60,12 +60,14 @@ const mockGetFeed = jest.fn();
 const mockSetFeed = jest.fn();
 const mockUpdateFeedReference = jest.fn();
 const mockHasFeedGrant = jest.fn();
+const mockGetAllFeeds = jest.fn();
 jest.mock('./feed-store', () => ({
   getOriginEntry: mockGetOriginEntry,
   getFeed: mockGetFeed,
   setFeed: mockSetFeed,
   updateFeedReference: mockUpdateFeedReference,
   hasFeedGrant: mockHasFeedGrant,
+  getAllFeeds: mockGetAllFeeds,
 }));
 
 const mockGetDerivedKeys = jest.fn();
@@ -1367,6 +1369,89 @@ describe('swarm-provider-ipc', () => {
 
       const result = await checkBeeReachable();
       expect(result).toEqual({ ok: false, reason: 'node-stopped' });
+    });
+  });
+
+  describe('swarm_listFeeds', () => {
+    test('returns empty array for origin with no feeds', async () => {
+      mockGetAllFeeds.mockReturnValue({});
+      const result = await invokeProvider('swarm_listFeeds', {}, 'newapp.eth');
+      expect(result.result).toEqual([]);
+      expect(result.error).toBeUndefined();
+    });
+
+    test('returns array of feed records with full coordinates', async () => {
+      mockGetAllFeeds.mockReturnValue({
+        'user-feed': {
+          topic: 'a1b2c3',
+          owner: '0xOwner1',
+          manifestReference: 'mref1',
+          createdAt: 1000,
+          lastUpdated: 2000,
+          lastReference: 'ref1',
+        },
+        'comments': {
+          topic: 'd4e5f6',
+          owner: '0xOwner1',
+          manifestReference: 'mref2',
+          createdAt: 1500,
+          lastUpdated: null,
+          lastReference: null,
+        },
+      });
+
+      const result = await invokeProvider('swarm_listFeeds', {}, 'myapp.eth');
+
+      expect(result.result).toHaveLength(2);
+      expect(result.result).toContainEqual({
+        name: 'user-feed',
+        topic: 'a1b2c3',
+        owner: '0xOwner1',
+        manifestReference: 'mref1',
+        bzzUrl: 'bzz://mref1',
+        createdAt: 1000,
+        lastUpdated: 2000,
+        lastReference: 'ref1',
+      });
+      expect(result.result).toContainEqual({
+        name: 'comments',
+        topic: 'd4e5f6',
+        owner: '0xOwner1',
+        manifestReference: 'mref2',
+        bzzUrl: 'bzz://mref2',
+        createdAt: 1500,
+        lastUpdated: null,
+        lastReference: null,
+      });
+    });
+
+    test('does NOT require connection permission (origin-scoped introspection)', async () => {
+      // After revocation an origin should still be able to introspect its
+      // preserved feed records — the metadata persists by design so a
+      // re-granted origin sees its prior feeds, and listing them doesn't
+      // leak anything beyond what the origin already created.
+      mockGetPermission.mockReturnValue(null);
+      mockGetAllFeeds.mockReturnValue({
+        'user-feed': {
+          topic: 'a1b2c3',
+          owner: '0xOwner',
+          manifestReference: 'mref',
+          createdAt: 1000,
+          lastUpdated: null,
+          lastReference: null,
+        },
+      });
+
+      const result = await invokeProvider('swarm_listFeeds', {}, 'revoked.eth');
+
+      expect(result.result).toHaveLength(1);
+      expect(result.error).toBeUndefined();
+    });
+
+    test('scopes results to caller origin', async () => {
+      mockGetAllFeeds.mockReturnValue({});
+      await invokeProvider('swarm_listFeeds', {}, 'specific-origin.eth');
+      expect(mockGetAllFeeds).toHaveBeenCalledWith('specific-origin.eth');
     });
   });
 });

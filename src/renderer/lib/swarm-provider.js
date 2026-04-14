@@ -82,6 +82,9 @@ async function handleSwarmRequest(webview, request) {
     } else if (method === 'swarm_readFeedEntry') {
       // No permission required — feeds are public Swarm data
       result = await forwardToMain(method, params, permissionKey);
+    } else if (method === 'swarm_listFeeds') {
+      // No permission required — origin-scoped introspection of own feed metadata
+      result = await forwardToMain(method, params, permissionKey);
     } else if (method === 'swarm_createFeed' || method === 'swarm_updateFeed' || method === 'swarm_writeFeedEntry') {
       await requirePermission(permissionKey);
 
