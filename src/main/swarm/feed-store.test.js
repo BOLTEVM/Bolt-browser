@@ -326,7 +326,6 @@ describe('feed-store', () => {
     });
 
     test('registers expected channels', () => {
-      expect(ipcHandlers[IPC.SWARM_GET_ORIGIN_FEEDS]).toBeDefined();
       expect(ipcHandlers[IPC.SWARM_HAS_FEED_IDENTITY]).toBeDefined();
       expect(ipcHandlers[IPC.SWARM_SET_FEED_IDENTITY]).toBeDefined();
     });

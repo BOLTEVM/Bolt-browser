@@ -176,7 +176,6 @@ module.exports = {
 
   // Swarm Feed Store
   SWARM_GET_ALL_ORIGINS: 'swarm:get-all-origins',
-  SWARM_GET_ORIGIN_FEEDS: 'swarm:get-origin-feeds',
   SWARM_HAS_FEED_IDENTITY: 'swarm:has-feed-identity',
   SWARM_SET_FEED_IDENTITY: 'swarm:set-feed-identity',
   SWARM_HAS_FEED_GRANT: 'swarm:has-feed-grant',

@@ -290,10 +290,6 @@ function revokeFeedAccess(origin) {
  * Register IPC handlers for feed store.
  */
 function registerFeedStoreIpc() {
-  ipcMain.handle(IPC.SWARM_GET_ORIGIN_FEEDS, (_event, origin) => {
-    return getAllFeeds(origin);
-  });
-
   ipcMain.handle(IPC.SWARM_GET_ALL_ORIGINS, () => {
     return getAllOriginEntries();
   });
