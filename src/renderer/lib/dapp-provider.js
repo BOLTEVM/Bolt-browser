@@ -10,7 +10,9 @@
  * webview (window.ethereum) → renderer (this) → main (RPC/signing)
  */
 
-import { showDappConnect, getSelectedChainId, setSelectedChainId, updateConnectionBanner, showDappTxApproval, showDappSignApproval } from './wallet-ui.js';
+import { showDappConnect, getSelectedChainId, setSelectedChainId, updateConnectionBanner, showDappTxApproval, showDappSignApproval, showVaultUnlock, updateSwarmConnectionBanner } from './wallet-ui.js';
+import { extractSelector } from './wallet/dapp-tx.js';
+import { getPermissionKey } from './origin-utils.js';
 
 // Feature flag state
 let identityWalletEnabled = false;
@@ -29,8 +31,9 @@ const providerStates = new WeakMap();
 // Current active webview reference (set by tabs.js)
 let activeWebview = null;
 
-// Callback for showing connection approval UI (legacy, kept for compatibility)
-let showConnectionApproval = null;
+// Callback for showing connection approval UI (legacy, kept for compatibility
+// with external callers of the exported onConnectionApproval setter).
+let _showConnectionApproval = null;
 
 /**
  * EIP-1193 error codes
@@ -52,57 +55,6 @@ const ERRORS = {
 function getDisplayUrl() {
   const addressInput = document.getElementById('address-input');
   return addressInput?.value || '';
-}
-
-/**
- * Extract the permission key from a display URL
- * This strips the URL to its "root" identifier:
- * - ipfs://QmABC123/path → ipfs://QmABC123
- * - bzz://abc123/page → bzz://abc123
- * - vitalik.eth/blog → vitalik.eth
- * - ipns://docs.ipfs.tech/guide → ipns://docs.ipfs.tech
- * - https://app.uniswap.org/swap → https://app.uniswap.org
- */
-function getPermissionKey(displayUrl) {
-  if (!displayUrl) return null;
-
-  const trimmed = displayUrl.trim();
-
-  // ENS name without protocol (e.g., 1inch.eth/path)
-  if (/^[a-z0-9-]+\.(eth|box)/i.test(trimmed)) {
-    return trimmed.split('/')[0].toLowerCase();
-  }
-
-  // ens:// protocol → extract ENS name (e.g., ens://1inch.eth/#/path → 1inch.eth)
-  const ensMatch = trimmed.match(/^ens:\/\/([^/#]+)/i);
-  if (ensMatch) {
-    return ensMatch[1].toLowerCase();
-  }
-
-  // dweb protocols: ipfs://CID/path → ipfs://CID
-  const dwebMatch = trimmed.match(/^(ipfs|bzz|ipns):\/\/([^/]+)/i);
-  if (dwebMatch) {
-    return `${dwebMatch[1].toLowerCase()}://${dwebMatch[2]}`;
-  }
-
-  // rad:// protocol
-  const radMatch = trimmed.match(/^rad:\/\/([^/]+)/i);
-  if (radMatch) {
-    return `rad://${radMatch[1]}`;
-  }
-
-  // Regular URL (https://host/path → https://host)
-  try {
-    const url = new URL(trimmed);
-    // Non-standard protocols return "null" for origin, fall back to trimmed
-    if (url.origin === 'null') {
-      return trimmed;
-    }
-    return url.origin;
-  } catch {
-    // If parsing fails, return as-is
-    return trimmed;
-  }
 }
 
 /**
@@ -134,30 +86,6 @@ const READ_ONLY_METHODS = [
   'eth_uninstallFilter',
   'web3_clientVersion',
   'web3_sha3',
-];
-
-/**
- * Methods that require connection (account access)
- */
-const ACCOUNT_METHODS = [
-  'eth_accounts',
-  'eth_requestAccounts',
-];
-
-/**
- * Methods that require user approval
- */
-const APPROVAL_METHODS = [
-  'eth_sendTransaction',
-  'eth_signTransaction',
-  'personal_sign',
-  'eth_sign',
-  'eth_signTypedData',
-  'eth_signTypedData_v3',
-  'eth_signTypedData_v4',
-  'wallet_addEthereumChain',
-  'wallet_switchEthereumChain',
-  'wallet_watchAsset',
 ];
 
 /**
@@ -258,11 +186,42 @@ async function handleProviderRequest(webview, request) {
       // Handle chain switching
       result = await handleSwitchChain(params, permissionKey, webview);
     } else if (method === 'eth_sendTransaction') {
-      // Need transaction approval
-      result = await showDappTxApproval(webview, permissionKey, params[0]);
+      const txParams = params[0];
+      const selector = extractSelector(txParams?.data);
+      const permission = await window.dappPermissions.getPermission(permissionKey);
+      if (!permission) {
+        throw { ...ERRORS.UNAUTHORIZED, message: 'Not connected. Call eth_requestAccounts first.' };
+      }
+
+      const chainId = permission.chainId || parseInt(await getCurrentChainId(), 16);
+
+      // Auto-approve only for contract calls with a matching rule (never plain ETH transfers)
+      if (selector && txParams?.to
+        && await window.dappPermissions.isTransactionAutoApproved(permissionKey, txParams.to, selector, chainId)
+      ) {
+        const vaultStatus = await window.identity?.getStatus?.();
+        if (!vaultStatus?.isUnlocked) {
+          await showVaultUnlock(permissionKey);
+        }
+        result = await autoApproveTx(permission, txParams, chainId, permissionKey);
+      } else {
+        result = await showDappTxApproval(webview, permissionKey, txParams);
+      }
     } else if (method === 'personal_sign' || method === 'eth_signTypedData_v4') {
-      // Need signing approval
-      result = await showDappSignApproval(webview, permissionKey, method, params);
+      const permission = await window.dappPermissions.getPermission(permissionKey);
+      if (!permission) {
+        throw { ...ERRORS.UNAUTHORIZED, message: 'Not connected. Call eth_requestAccounts first.' };
+      }
+
+      if (permission.autoApprove?.signing) {
+        const vaultStatus = await window.identity?.getStatus?.();
+        if (!vaultStatus?.isUnlocked) {
+          await showVaultUnlock(permissionKey);
+        }
+        result = await autoApproveSign(permission, method, params, permissionKey);
+      } else {
+        result = await showDappSignApproval(webview, permissionKey, method, params);
+      }
     } else if (method === 'eth_sign') {
       // Deprecated and dangerous - reject
       throw { ...ERRORS.UNSUPPORTED_METHOD, message: 'eth_sign is deprecated for security reasons' };
@@ -282,6 +241,88 @@ async function handleProviderRequest(webview, request) {
     };
     sendProviderResponse(webview, id, null, err);
   }
+}
+
+/**
+ * Send a transaction without showing the approval UI (auto-approved).
+ * Handles gas estimation and signing via wallet IPC.
+ */
+async function autoApproveTx(permission, txParams, chainId, permissionKey) {
+  const walletIndex = permission.walletIndex;
+
+  // Resolve sender address and gas price in parallel
+  const [walletsResult, gasPrices] = await Promise.all([
+    window.wallet.getDerivedWallets(),
+    window.wallet.getGasPrice(chainId),
+  ]);
+
+  const wallets = walletsResult?.success ? walletsResult.wallets : [];
+  const wallet = wallets.find((w) => w.index === walletIndex);
+  const fromAddress = wallet?.address;
+
+  if (!gasPrices?.success) {
+    throw new Error(gasPrices?.error || 'Failed to get gas prices');
+  }
+
+  const gasEstimate = await window.wallet.estimateGas({
+    from: fromAddress,
+    to: txParams.to,
+    value: txParams.value,
+    data: txParams.data,
+    chainId,
+  });
+
+  if (!gasEstimate?.success) {
+    throw new Error(gasEstimate?.error || 'Gas estimation failed');
+  }
+
+  const tx = {
+    to: txParams.to,
+    value: txParams.value || '0',
+    data: txParams.data,
+    gasLimit: gasEstimate.gasLimit || txParams.gas,
+    chainId,
+  };
+
+  if (gasPrices.type === 'eip1559') {
+    tx.maxFeePerGas = gasPrices.maxFeePerGas;
+    tx.maxPriorityFeePerGas = gasPrices.maxPriorityFeePerGas;
+  } else if (gasPrices.gasPrice) {
+    tx.gasPrice = gasPrices.gasPrice;
+  }
+
+  const result = await window.wallet.dappSendTransaction(tx, walletIndex);
+  if (!result.success) throw new Error(result.error || 'Transaction failed');
+
+  window.dappPermissions.updateLastUsed(permissionKey);
+  return result.hash;
+}
+
+/**
+ * Sign a message without showing the approval UI (auto-approved).
+ * Accepts the already-fetched permission object to avoid redundant IPC.
+ */
+async function autoApproveSign(permission, method, params, permissionKey) {
+  const signature = await executeSign(method, params, permission.walletIndex);
+  window.dappPermissions.updateLastUsed(permissionKey);
+  return signature;
+}
+
+/**
+ * Execute a signing operation via the wallet IPC bridge.
+ * Shared by both auto-approve and manual approval paths.
+ */
+async function executeSign(method, params, walletIndex) {
+  let result;
+  if (method === 'personal_sign') {
+    result = await window.wallet.signMessage(params[0], walletIndex);
+  } else if (method === 'eth_signTypedData_v4') {
+    result = await window.wallet.signTypedData(params[1], walletIndex);
+  } else {
+    throw new Error(`Unsupported signing method: ${method}`);
+  }
+  if (!result.success) throw new Error(result.error || 'Signing failed');
+  return result.signature;
 }
 
 /**
@@ -401,15 +442,6 @@ function sendProviderEvent(webview, event, data) {
 }
 
 /**
- * Send state update to a webview
- */
-function sendProviderState(webview, state) {
-  if (webview && webview.send) {
-    webview.send('dapp:provider-state', state);
-  }
-}
-
-/**
  * Setup provider request listener for a webview
  */
 export function setupWebviewProvider(webview) {
@@ -432,9 +464,10 @@ export function setupWebviewProvider(webview) {
 export function setActiveWebview(webview) {
   activeWebview = webview;
 
-  // Update connection banner after a small delay to allow address bar to update
+  // Update connection banners after a small delay to allow address bar to update
   setTimeout(() => {
     updateConnectionBanner();
+    updateSwarmConnectionBanner();
   }, 50);
 }
 
@@ -449,7 +482,7 @@ export function getActiveWebview() {
  * Register callback for showing connection approval UI
  */
 export function onConnectionApproval(callback) {
-  showConnectionApproval = callback;
+  _showConnectionApproval = callback;
 }
 
 /**
@@ -490,6 +523,9 @@ export function broadcastProviderEvent(event, data) {
     sendProviderEvent(activeWebview, event, data);
   }
 }
+
+// Exported for use by swarm-provider.js and swarm-connect.js
+export { getPermissionKey, getDisplayUrl, executeSign };
 
 // Export state for wallet UI to access
 export const walletState = {

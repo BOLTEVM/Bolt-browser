@@ -107,7 +107,7 @@ Enter any of the following in the address bar:
 
 | Input Type  | Example                                         |
 | ----------- | ----------------------------------------------- |
-| Swarm Hash  | `a1b2c3...` (64 hex characters)                 |
+| Swarm Hash  | `a1b2c3...` (64 or 128 hex characters)          |
 | Swarm URL   | `bzz://a1b2c3.../path/to/file.html`             |
 | IPFS CID    | `QmHash...` or `bafybeic...`                    |
 | IPFS URL    | `ipfs://QmHash.../path`                         |
