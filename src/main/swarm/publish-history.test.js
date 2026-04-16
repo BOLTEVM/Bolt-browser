@@ -1,117 +1,248 @@
-jest.mock('electron', () => ({
-  app: { getPath: () => '/tmp/test-publish-history' },
-  ipcMain: { handle: jest.fn() },
-}));
+const fs = require('fs');
+const path = require('path');
+const FakeBetterSqlite3PublishesDatabase = require('../../../test/helpers/fake-better-sqlite3-publishes');
+const {
+  createIpcMainMock,
+  createTempUserDataDir,
+  loadMainModule,
+  removeTempUserDataDir,
+} = require('../../../test/helpers/main-process-test-utils');
 
-jest.mock('electron-log', () => ({
-  info: jest.fn(),
-  error: jest.fn(),
-}));
+function loadPublishHistoryModule(options = {}) {
+  return loadMainModule(require.resolve('./publish-history'), {
+    ...options,
+    extraMocks: {
+      'better-sqlite3': () => FakeBetterSqlite3PublishesDatabase,
+      [require.resolve('../logger')]: () => ({
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      }),
+    },
+  });
+}
 
-// Mock fs to avoid real file I/O
-const mockFs = {
-  existsSync: jest.fn().mockReturnValue(false),
-  readFileSync: jest.fn(),
-  writeFileSync: jest.fn(),
-};
-jest.mock('fs', () => mockFs);
+describe('publish-history (sqlite)', () => {
+  let userDataDir;
+  let mod;
 
-const { addEntry, updateEntry, getEntries, clearEntries, removeEntry } = require('./publish-history');
-
-describe('publish-history', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockFs.existsSync.mockReturnValue(false);
-    // Force reload by clearing the module's internal cache
-    clearEntries();
+    userDataDir = createTempUserDataDir();
+    mod = null;
   });
 
-  test('addEntry creates a record with generated id and timestamp', () => {
-    const entry = addEntry({ type: 'file', name: 'test.txt', status: 'uploading' });
-
-    expect(entry.id).toBeTruthy();
-    expect(entry.type).toBe('file');
-    expect(entry.name).toBe('test.txt');
-    expect(entry.status).toBe('uploading');
-    expect(entry.timestamp).toBeTruthy();
-    expect(entry.reference).toBeNull();
-    expect(entry.bzzUrl).toBeNull();
+  afterEach(() => {
+    if (mod?.closeDb) mod.closeDb();
+    removeTempUserDataDir(userDataDir);
   });
 
-  test('addEntry prepends to the list (newest first)', () => {
-    addEntry({ name: 'first' });
-    addEntry({ name: 'second' });
+  test('addEntry inserts a row with generated id and uploading status', () => {
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
 
-    const entries = getEntries();
-    expect(entries).toHaveLength(2);
-    expect(entries[0].name).toBe('second');
-    expect(entries[1].name).toBe('first');
+    const entry = mod.addEntry({ type: 'file', name: 'test.txt', status: 'uploading' });
+
+    expect(entry.id).toEqual(expect.any(Number));
+    expect(entry).toEqual(
+      expect.objectContaining({
+        type: 'file',
+        name: 'test.txt',
+        status: 'uploading',
+        reference: null,
+        bzzUrl: null,
+        completedAt: null,
+      })
+    );
+    expect(typeof entry.timestamp).toBe('string');
   });
 
-  test('addEntry caps the list at 100 entries', () => {
-    for (let i = 0; i < 105; i++) {
-      addEntry({ name: `entry-${i}` });
-    }
+  test('addEntry with completed status sets completedAt immediately', () => {
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
 
-    const entries = getEntries();
-    expect(entries).toHaveLength(100);
-    expect(entries[0].name).toBe('entry-104');
+    const entry = mod.addEntry({ type: 'data', status: 'completed', reference: 'abc' });
+
+    expect(entry.status).toBe('completed');
+    expect(entry.completedAt).not.toBeNull();
   });
 
-  test('updateEntry updates status and reference', () => {
-    const entry = addEntry({ name: 'test', status: 'uploading' });
+  test('updateEntry transitions status, reference, bzzUrl, tagUid, batchIdUsed', () => {
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    const created = mod.addEntry({ type: 'directory', name: 'site', status: 'uploading' });
 
-    const updated = updateEntry(entry.id, {
+    const updated = mod.updateEntry(created.id, {
       status: 'completed',
-      reference: 'abc123',
-      bzzUrl: 'bzz://abc123',
+      reference: 'deadbeef',
+      bzzUrl: 'bzz://deadbeef',
+      tagUid: 42,
+      batchIdUsed: 'batch1',
     });
 
-    expect(updated.status).toBe('completed');
-    expect(updated.reference).toBe('abc123');
-    expect(updated.bzzUrl).toBe('bzz://abc123');
+    expect(updated).toEqual(
+      expect.objectContaining({
+        status: 'completed',
+        reference: 'deadbeef',
+        bzzUrl: 'bzz://deadbeef',
+        tagUid: 42,
+        batchIdUsed: 'batch1',
+      })
+    );
+    expect(updated.completedAt).not.toBeNull();
   });
 
   test('updateEntry returns null for unknown id', () => {
-    const result = updateEntry('nonexistent', { status: 'failed' });
-    expect(result).toBeNull();
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    expect(mod.updateEntry(99999, { status: 'failed' })).toBeNull();
   });
 
-  test('clearEntries empties the list', () => {
-    addEntry({ name: 'test' });
-    expect(getEntries()).toHaveLength(1);
+  test('updateEntry to status=failed records the error message', () => {
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    const created = mod.addEntry({ type: 'data', status: 'uploading' });
 
-    clearEntries();
-    expect(getEntries()).toHaveLength(0);
+    const updated = mod.updateEntry(created.id, {
+      status: 'failed',
+      errorMessage: 'stamp expired',
+    });
+
+    expect(updated.status).toBe('failed');
+    expect(updated.errorMessage).toBe('stamp expired');
+    expect(updated.completedAt).not.toBeNull();
   });
 
-  test('removeEntry removes a specific entry', () => {
-    addEntry({ name: 'keep' });
-    const e2 = addEntry({ name: 'remove' });
+  test('getEntries returns rows newest-first and includes new columns', () => {
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    mod.addEntry({ type: 'data', name: 'first', origin: 'freedom://publish' });
+    // started_at uses Date.now() — bump to guarantee distinct ordering keys.
+    const realNow = Date.now;
+    Date.now = () => realNow() + 10;
+    mod.addEntry({ type: 'directory', name: 'second', origin: 'https://dapp.example' });
+    Date.now = realNow;
 
-    removeEntry(e2.id);
+    const entries = mod.getEntries();
+    expect(entries).toHaveLength(2);
+    expect(entries[0].name).toBe('second');
+    expect(entries[0].origin).toBe('https://dapp.example');
+    expect(entries[1].name).toBe('first');
+    expect(entries[1].origin).toBe('freedom://publish');
+  });
 
-    const entries = getEntries();
+  test('removeEntry deletes by id; clearEntries empties everything', () => {
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    const a = mod.addEntry({ type: 'data', name: 'keep' });
+    const b = mod.addEntry({ type: 'data', name: 'drop' });
+
+    expect(mod.removeEntry(b.id)).toBe(true);
+    expect(mod.getEntries()).toHaveLength(1);
+    expect(mod.getEntries()[0].id).toBe(a.id);
+
+    mod.clearEntries();
+    expect(mod.getEntries()).toHaveLength(0);
+  });
+
+  test('handles 200+ entries without a cap', () => {
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    for (let i = 0; i < 250; i++) mod.addEntry({ type: 'data', name: `e${i}` });
+    expect(mod.getEntries()).toHaveLength(250);
+  });
+
+  test('migrates legacy publish-history.json on first open and renames the file', () => {
+    const jsonPath = path.join(userDataDir, 'publish-history.json');
+    fs.writeFileSync(
+      jsonPath,
+      JSON.stringify({
+        version: 1,
+        entries: [
+          {
+            id: 'legacy-1',
+            type: 'directory',
+            name: 'old-site',
+            status: 'completed',
+            reference: 'legacyref',
+            bzzUrl: 'bzz://legacyref',
+            tagUid: 100,
+            batchIdUsed: 'legacybatch',
+            timestamp: '2026-04-15T19:30:32.540Z',
+          },
+          {
+            id: 'legacy-2',
+            type: 'feed-create',
+            name: 'feed-x',
+            status: 'completed',
+            timestamp: '2026-04-15T19:31:00.000Z',
+          },
+        ],
+      })
+    );
+
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    const entries = mod.getEntries();
+
+    expect(entries).toHaveLength(2);
+    expect(entries[0].name).toBe('feed-x'); // newer first
+    expect(entries[1]).toEqual(
+      expect.objectContaining({
+        type: 'directory',
+        name: 'old-site',
+        status: 'completed',
+        reference: 'legacyref',
+        bzzUrl: 'bzz://legacyref',
+        tagUid: 100,
+        batchIdUsed: 'legacybatch',
+      })
+    );
+
+    expect(fs.existsSync(jsonPath)).toBe(false);
+    expect(fs.existsSync(jsonPath + '.migrated')).toBe(true);
+  });
+
+  test('migration is idempotent — no JSON, no error', () => {
+    expect(() => {
+      ({ mod } = loadPublishHistoryModule({ userDataDir }));
+      mod.getEntries();
+    }).not.toThrow();
+  });
+
+  test('sweepOrphans flips uploading rows to failed when getDb runs', () => {
+    // Seed the fake by inserting two uploading rows, then explicitly invoke
+    // the sweep path through a new module load. Since the fake DB is in-memory
+    // per instance, we simulate the "prior session left orphans" scenario by
+    // going through the migrateFromJson path with an uploading entry.
+    const jsonPath = path.join(userDataDir, 'publish-history.json');
+    fs.writeFileSync(
+      jsonPath,
+      JSON.stringify({
+        version: 1,
+        entries: [
+          {
+            type: 'data',
+            name: 'orphan',
+            status: 'uploading',
+            timestamp: '2026-04-15T19:30:32.540Z',
+          },
+        ],
+      })
+    );
+
+    ({ mod } = loadPublishHistoryModule({ userDataDir }));
+    const entries = mod.getEntries();
+
     expect(entries).toHaveLength(1);
-    expect(entries[0].name).toBe('keep');
+    expect(entries[0].status).toBe('failed');
+    expect(entries[0].errorMessage).toBe(mod.ORPHAN_SWEEP_MESSAGE);
+    expect(entries[0].completedAt).not.toBeNull();
   });
 
-  test('getEntries returns a copy, not the internal array', () => {
-    addEntry({ name: 'test' });
-    const entries = getEntries();
-    entries.push({ name: 'injected' });
+  test('registers IPC handlers that wrap getEntries / clearEntries', async () => {
+    const ipcMain = createIpcMainMock();
+    ({ mod } = loadPublishHistoryModule({ userDataDir, ipcMain }));
+    mod.registerPublishHistoryIpc();
 
-    expect(getEntries()).toHaveLength(1);
-  });
+    mod.addEntry({ type: 'data', name: 'one' });
 
-  test('save writes versioned JSON to disk', () => {
-    addEntry({ name: 'test' });
+    const getResult = await ipcMain.invoke('swarm:get-publish-history');
+    expect(getResult.success).toBe(true);
+    expect(getResult.entries).toHaveLength(1);
 
-    expect(mockFs.writeFileSync).toHaveBeenCalled();
-    const calls = mockFs.writeFileSync.mock.calls;
-    const [, data] = calls[calls.length - 1];
-    const parsed = JSON.parse(data);
-    expect(parsed.version).toBe(1);
-    expect(parsed.entries).toHaveLength(1);
+    const clearResult = await ipcMain.invoke('swarm:clear-publish-history');
+    expect(clearResult.success).toBe(true);
+    expect(mod.getEntries()).toHaveLength(0);
   });
 });
