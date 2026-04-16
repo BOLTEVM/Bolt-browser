@@ -6,7 +6,7 @@
  */
 
 import { showOnboarding } from './onboarding.js';
-import { open as openSidebarPanel } from './sidebar.js';
+import { open as openSidebarPanel, isFeatureEnabled as isSidebarFeatureEnabled } from './sidebar.js';
 import { walletState } from './wallet/wallet-state.js';
 import { truncateAddress, timeAgo } from './wallet/wallet-utils.js';
 
@@ -289,10 +289,15 @@ async function updateSecurityStatus() {
  * Open the sidebar, switch to the Nodes tab, and surface the publish-setup
  * checklist. Single entry point used by the freedom://settings deep-link.
  *
- * Bails out during onboarding because switchTab no-ops in setup mode and we
- * don't want publish-setup floating on top of the onboarding wizard.
+ * Bails out when:
+ *  - the Identity & Wallet feature is disabled (sidebar.open() would no-op
+ *    silently while openPublishSetup() would still start its 5s polling
+ *    interval against a hidden screen)
+ *  - the user is in onboarding (switchTab no-ops in setup mode and we don't
+ *    want publish-setup floating on top of the wizard)
  */
 export function openPublishSetupFlow() {
+  if (!isSidebarFeatureEnabled()) return;
   if (walletState.viewMode === 'setup') return;
   openSidebarPanel();
   switchTab('nodes');

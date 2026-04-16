@@ -822,6 +822,16 @@
           return;
         }
 
+        // The publish-setup flow lives inside the wallet sidebar, which is gated
+        // by the Identity & Wallet feature flag. If that's off, offering a button
+        // would deep-link into a sidebar the user can't open.
+        if (settings?.enableIdentityWallet !== true) {
+          swarmModeHelp.textContent =
+            'Ultra-light — read-only. Enable Identity & Wallet (in Experimental, above) to set up publishing.';
+          hideAction();
+          return;
+        }
+
         swarmModeHelp.textContent =
           'Ultra-light — read-only. Set up publishing to switch to light mode.';
         showAction('Set up publishing →', () => {
