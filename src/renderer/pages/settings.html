@@ -793,19 +793,11 @@
         save();
       });
 
-      let ensRpcSaveTimer = null;
-      fields.ensRpcUrl.addEventListener('input', () => {
-        clearTimeout(ensRpcSaveTimer);
-        setEnsRpcStatus('', '');
-        ensRpcSaveTimer = setTimeout(save, 600);
-      });
-      fields.ensRpcUrl.addEventListener('blur', () => {
-        if (ensRpcSaveTimer) {
-          clearTimeout(ensRpcSaveTimer);
-          ensRpcSaveTimer = null;
-          save();
-        }
-      });
+      // Persist on blur only — autosaving mid-typing would briefly persist
+      // partial URLs (e.g. http://localh) that the ENS resolver picks up on
+      // the next lookup.
+      fields.ensRpcUrl.addEventListener('input', () => setEnsRpcStatus('', ''));
+      fields.ensRpcUrl.addEventListener('blur', save);
 
       fields.ensRpcTest.addEventListener('click', async () => {
         const url = (fields.ensRpcUrl.value || '').trim();
