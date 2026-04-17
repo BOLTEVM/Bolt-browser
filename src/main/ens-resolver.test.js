@@ -212,6 +212,22 @@ describe('ens-resolver', () => {
       expect(result.type).toBe('ok');
     });
 
+    // Unicode names need full UTS-46 / ENSIP-15 normalization, not bare
+    // lowercase — otherwise namehash is computed against an unnormalized
+    // form and the resolver lookup silently misses.
+    test('normalizes unicode names via ENSIP-15', async () => {
+      mockUrResolve.mockResolvedValue(urReturnsBytes(ipfsContenthashFor(IPFS_V0)));
+
+      const result = await resolveEnsContent('nic🦊.eth');
+
+      expect(result.type).toBe('ok');
+      expect(result.name).toBe('nic🦊.eth');
+    });
+
+    test('throws on invalid ENS label (e.g. mid-label underscore)', async () => {
+      await expect(resolveEnsContent('invalid_label.eth')).rejects.toThrow(/underscore/i);
+    });
+
     test('throws on empty name', async () => {
       await expect(resolveEnsContent('')).rejects.toThrow('ENS name is empty');
       await expect(resolveEnsContent('   ')).rejects.toThrow('ENS name is empty');

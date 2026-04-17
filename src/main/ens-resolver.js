@@ -1,6 +1,7 @@
 const log = require('./logger');
 const { ipcMain } = require('electron');
 const { ethers } = require('ethers');
+const { ens_normalize } = require('@adraffy/ens-normalize');
 const IPC = require('../shared/ipc-channels');
 const { success, failure } = require('./ipc-contract');
 const { loadSettings } = require('./settings-store');
@@ -340,15 +341,21 @@ async function resolveEnsAddress(name) {
 }
 
 // Shared validation + cache + retry wrapper for the content-hash and
-// addr lookup paths. Both do the same thing: trim, lowercase, check the
-// same-shape TTL cache, retry up to MAX_RESOLUTION_RETRIES on provider
-// errors, invalidate the cached provider between attempts.
+// addr lookup paths.
+//
+// Normalization goes through @adraffy/ens-normalize (UTS-46 / ENSIP-15),
+// not a bare .toLowerCase(). That's correct for unicode ENS names
+// (emoji labels, non-ASCII domains) whose namehash depends on canonical
+// NFC form. `ens_normalize` is a no-op beyond lowercasing for pure-ASCII
+// names like "Vitalik.ETH", so callers that pass 0x addresses (reverse
+// lookup) are unaffected. Invalid labels throw — which propagates to
+// the IPC handler and surfaces as a RESOLUTION_ERROR to the renderer.
 async function resolveWithCache(name, cache, doResolve, label) {
   const trimmed = (name || '').trim();
   if (!trimmed) {
     throw new Error('ENS name is empty');
   }
-  const normalized = trimmed.toLowerCase();
+  const normalized = ens_normalize(trimmed);
 
   const cached = cache.get(normalized);
   if (cached && Date.now() - cached.timestamp < ENS_CACHE_TTL_MS) {
