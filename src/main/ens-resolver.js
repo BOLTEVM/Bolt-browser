@@ -173,16 +173,27 @@ function isProviderError(err) {
 // Maximum retries for provider errors during resolution
 const MAX_RESOLUTION_RETRIES = 3;
 
-// UR reverts with these custom errors when a name has no resolver or its
-// resolver isn't a contract. Callers want to treat both as "not found".
+// UR reverts with these custom errors when a name has no resolver, its
+// resolver isn't a contract, or the name can't be reached. Callers want
+// to treat all of them as "not found".
+//
+// ethers v6 surfaces the 4-byte selector via err.data on CALL_EXCEPTION;
+// some wrappers (JSON-RPC proxies) expose it under err.info.error.data
+// instead. Check both.
+const UR_NOT_FOUND_SELECTORS = new Set([
+  '0x77209fe8', // ResolverNotFound(bytes)
+  '0x1e9535f2', // ResolverNotContract(bytes,address)
+  '0x5fe9a5df', // UnreachableName(bytes)
+]);
+
 function isResolverNotFoundError(err) {
   const msg = err?.message || '';
-  const data = err?.info?.error?.data || err?.data || '';
-  return (
-    /ResolverNotFound|ResolverNotContract/i.test(msg) ||
-    // ResolverNotFound(bytes) selector
-    (typeof data === 'string' && data.startsWith('0x7199966d'))
-  );
+  const data = err?.data || err?.info?.error?.data || '';
+  if (/ResolverNotFound|ResolverNotContract|UnreachableName/i.test(msg)) return true;
+  if (typeof data === 'string' && data.length >= 10) {
+    return UR_NOT_FOUND_SELECTORS.has(data.slice(0, 10).toLowerCase());
+  }
+  return false;
 }
 
 // Call the Universal Resolver's resolve(name, data). `callData` is the raw

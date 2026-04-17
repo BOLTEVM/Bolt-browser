@@ -702,27 +702,63 @@ describe('ens-resolver', () => {
   });
 
   describe('isResolverNotFoundError', () => {
-    test('matches ResolverNotFound error message', () => {
+    test('matches ResolverNotFound in error message', () => {
       expect(
         isResolverNotFoundError(new Error('execution reverted: ResolverNotFound("foo.eth")'))
       ).toBe(true);
     });
 
-    test('matches ResolverNotContract error message', () => {
+    test('matches ResolverNotContract in error message', () => {
       expect(
         isResolverNotFoundError(new Error('execution reverted: ResolverNotContract'))
       ).toBe(true);
     });
 
-    test('matches ResolverNotFound selector in error data', () => {
+    test('matches UnreachableName in error message', () => {
+      expect(
+        isResolverNotFoundError(new Error('execution reverted: UnreachableName'))
+      ).toBe(true);
+    });
+
+    // ethers v6 surfaces revert selectors on err.data directly — this is
+    // the shape we see on real CALL_EXCEPTION errors from a live RPC.
+    test('matches ResolverNotFound selector on err.data (ethers v6)', () => {
+      const err = new Error('execution reverted (unknown custom error)');
+      err.data = '0x77209fe800000000000000000000000000000000000000000000000000000000';
+      expect(isResolverNotFoundError(err)).toBe(true);
+    });
+
+    test('matches ResolverNotContract selector on err.data', () => {
+      const err = new Error('execution reverted');
+      err.data = '0x1e9535f2000000000000000000';
+      expect(isResolverNotFoundError(err)).toBe(true);
+    });
+
+    test('matches UnreachableName selector on err.data', () => {
+      const err = new Error('execution reverted');
+      err.data = '0x5fe9a5df000000000000000000';
+      expect(isResolverNotFoundError(err)).toBe(true);
+    });
+
+    // Some JSON-RPC wrappers nest the revert data one level deeper.
+    test('matches selector nested under err.info.error.data', () => {
       const err = new Error('call exception');
-      err.info = { error: { data: '0x7199966d00000000000000000000000000000000' } };
+      err.info = { error: { data: '0x77209fe80000' } };
+      expect(isResolverNotFoundError(err)).toBe(true);
+    });
+
+    test('selector match is case-insensitive', () => {
+      const err = new Error('x');
+      err.data = '0x77209FE80000';
       expect(isResolverNotFoundError(err)).toBe(true);
     });
 
     test('rejects unrelated errors', () => {
       expect(isResolverNotFoundError(new Error('network timeout'))).toBe(false);
       expect(isResolverNotFoundError(new Error('ECONNREFUSED'))).toBe(false);
+      const unrelated = new Error('x');
+      unrelated.data = '0xdeadbeef00000000';
+      expect(isResolverNotFoundError(unrelated)).toBe(false);
       expect(isResolverNotFoundError(null)).toBe(false);
       expect(isResolverNotFoundError(undefined)).toBe(false);
       expect(isResolverNotFoundError({})).toBe(false);
