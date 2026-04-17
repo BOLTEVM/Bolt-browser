@@ -14,12 +14,16 @@ const UNIVERSAL_RESOLVER_ADDRESS = '0x5a9236e72a66d3e08b83dcf489b4d850792b6009';
 const UR_ABI = [
   'function resolve(bytes name, bytes data) view returns (bytes resolvedData, address resolverAddress)',
   'function resolveMulticall(bytes name, bytes[] calls) view returns (bytes[] results)',
+  'function reverse(bytes lookupAddress, uint256 coinType) view returns (string primaryName, address resolver, address reverseResolver)',
 ];
 
 // bytes4(keccak256("contenthash(bytes32)"))
 const CONTENTHASH_SELECTOR = '0xbc1c4a73';
 // bytes4(keccak256("addr(bytes32)"))
 const ADDR_SELECTOR = '0x3b3b57de';
+
+// SLIP-0044 coin type for Ethereum mainnet, used by UR.reverse.
+const ETH_COIN_TYPE = 60n;
 
 // ENS contenthash byte patterns (EIP-1577). We preserve the CIDv0 base58
 // output ("QmFoo…") for IPFS/IPNS to stay byte-compatible with the
@@ -70,6 +74,9 @@ const ensResultCache = new Map();
 
 // Independent from ensResultCache so content and addr lookups don't evict each other.
 const ensAddressCache = new Map();
+
+// Address (lowercased 0x) → { result, timestamp } for reverse lookups.
+const ensReverseCache = new Map();
 
 // Get a working provider, trying each in sequence with fallback
 async function getWorkingProvider() {
@@ -423,6 +430,107 @@ function cacheAndLog(cache, normalized, result, okValue) {
   return result;
 }
 
+// Resolve an address to its ENS primary name, forward-verifying the
+// result. Conservative: returns { success: true, name } ONLY when the
+// claimed reverse name resolves its own addr record back to the same
+// address. Reverse records are user-set and spoofable; anyone can claim
+// any name, so the forward-verify is the only way to trust the output.
+async function resolveEnsReverse(address) {
+  if (typeof address !== 'string' || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    return {
+      success: false,
+      address,
+      reason: 'INVALID_ADDRESS',
+      error: `Invalid address: ${address}`,
+    };
+  }
+  const normalized = address.toLowerCase();
+
+  const cached = ensReverseCache.get(normalized);
+  if (cached && Date.now() - cached.timestamp < ENS_CACHE_TTL_MS) {
+    log.info(`[ens] reverse cache hit for ${normalized}`);
+    return cached.result;
+  }
+
+  let lastError;
+  for (let attempt = 1; attempt <= MAX_RESOLUTION_RETRIES; attempt++) {
+    try {
+      return await doResolveEnsReverse(normalized);
+    } catch (err) {
+      lastError = err;
+      if (isProviderError(err) && attempt < MAX_RESOLUTION_RETRIES) {
+        log.warn(
+          `[ens] reverse provider error on attempt ${attempt}/${MAX_RESOLUTION_RETRIES}: ${err.message}`
+        );
+        invalidateCachedProvider();
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
+async function doResolveEnsReverse(normalizedAddress) {
+  const provider = await getWorkingProvider();
+  const ur = new ethers.Contract(UNIVERSAL_RESOLVER_ADDRESS, UR_ABI, provider);
+  const addrBytes = ethers.getBytes(normalizedAddress);
+
+  let claimedName;
+  try {
+    const [name] = await ur.reverse(addrBytes, ETH_COIN_TYPE, { enableCcipRead: true });
+    claimedName = name;
+  } catch (err) {
+    if (isProviderError(err)) throw err;
+    if (isResolverNotFoundError(err)) {
+      return cacheReverseResult(normalizedAddress, noReverseResult(normalizedAddress));
+    }
+    log.info(`[ens] UR reverse failed for ${normalizedAddress}: ${err.message}`);
+    return cacheReverseResult(normalizedAddress, {
+      success: false,
+      address: normalizedAddress,
+      reason: 'RESOLUTION_ERROR',
+      error: err.message,
+    });
+  }
+
+  if (!claimedName) {
+    return cacheReverseResult(normalizedAddress, noReverseResult(normalizedAddress));
+  }
+
+  // Forward-verify: resolve the claimed name's addr record and ensure it
+  // matches the input address. Otherwise the reverse is spoofed or stale.
+  const forward = await resolveEnsAddress(claimedName);
+  if (!forward.success || forward.address.toLowerCase() !== normalizedAddress) {
+    return cacheReverseResult(normalizedAddress, {
+      success: false,
+      address: normalizedAddress,
+      claimed: claimedName,
+      reason: 'UNVERIFIED',
+      error: `Reverse record ${claimedName} does not forward-verify to ${normalizedAddress}`,
+    });
+  }
+
+  return cacheReverseResult(normalizedAddress, {
+    success: true,
+    address: normalizedAddress,
+    name: claimedName,
+  });
+}
+
+function noReverseResult(normalizedAddress) {
+  return {
+    success: false,
+    address: normalizedAddress,
+    reason: 'NO_REVERSE',
+    error: `No primary ENS name set for ${normalizedAddress}`,
+  };
+}
+
+function cacheReverseResult(normalizedAddress, result) {
+  return cacheAndLog(ensReverseCache, normalizedAddress, result, result.name);
+}
+
 // Test an RPC URL by connecting and fetching the block number.
 // Note: this intentionally accepts any reachable http(s) URL — testing a
 // local node (anvil/geth on 127.0.0.1, an internal RPC, etc.) is the
@@ -497,12 +605,28 @@ function registerEnsIpc() {
       };
     }
   });
+
+  ipcMain.handle(IPC.ENS_RESOLVE_REVERSE, async (_event, payload = {}) => {
+    const { address } = payload;
+    try {
+      return await resolveEnsReverse(address);
+    } catch (err) {
+      log.error('[ens] reverse resolution error', err);
+      return {
+        success: false,
+        address: typeof address === 'string' ? address.toLowerCase() : null,
+        reason: 'RESOLUTION_ERROR',
+        error: err.message,
+      };
+    }
+  });
 }
 
 module.exports = {
   registerEnsIpc,
   resolveEnsContent,
   resolveEnsAddress,
+  resolveEnsReverse,
   testRpcUrl,
   invalidateCachedProvider,
   universalResolverCall,
