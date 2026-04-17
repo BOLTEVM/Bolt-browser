@@ -804,8 +804,11 @@ async function handleSendContinue() {
       showResolvedAddress(resolved.address);
     } else {
       sendTxState.recipient = recipientClass.value;
-      sendTxState.recipientName = null;
       hideResolvedAddress();
+      // Best-effort reverse lookup so the review screen can show the
+      // recipient's primary ENS name alongside the address when one is
+      // verifiably set. A failure here doesn't block the send.
+      sendTxState.recipientName = await lookupPrimaryNameForAddress(recipientClass.value);
     }
 
     if (sendContinueBtn) sendContinueBtn.textContent = 'Loading...';
@@ -821,6 +824,20 @@ async function handleSendContinue() {
       sendContinueBtn.disabled = false;
       sendContinueBtn.textContent = 'Continue';
     }
+  }
+}
+
+// Ask main for the primary ENS name set for an address and return it
+// only if it forward-verifies. Never throws — returns null on any
+// failure or unavailability so the send flow isn't blocked.
+async function lookupPrimaryNameForAddress(address) {
+  const api = window.electronAPI;
+  if (!api?.resolveEnsReverse) return null;
+  try {
+    const result = await api.resolveEnsReverse(address);
+    return result?.success && result.name ? result.name : null;
+  } catch {
+    return null;
   }
 }
 
