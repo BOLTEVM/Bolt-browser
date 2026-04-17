@@ -795,6 +795,7 @@ async function handleSendContinue() {
   }
 
   try {
+    let reverseLookup = Promise.resolve(null);
     if (recipientClass.type === 'ens') {
       if (sendContinueBtn) sendContinueBtn.textContent = 'Resolving ENS…';
       const resolved = await resolveRecipientEns(recipientClass.value);
@@ -807,12 +808,17 @@ async function handleSendContinue() {
       hideResolvedAddress();
       // Best-effort reverse lookup so the review screen can show the
       // recipient's primary ENS name alongside the address when one is
-      // verifiably set. A failure here doesn't block the send.
-      sendTxState.recipientName = await lookupPrimaryNameForAddress(recipientClass.value);
+      // verifiably set. Fire in parallel with gas estimation so it
+      // doesn't add latency to the Continue → Review transition; a
+      // failure here doesn't block the send.
+      reverseLookup = lookupPrimaryNameForAddress(recipientClass.value);
     }
 
     if (sendContinueBtn) sendContinueBtn.textContent = 'Loading...';
-    await estimateTransactionGas();
+    const [, reverseName] = await Promise.all([estimateTransactionGas(), reverseLookup]);
+    if (reverseName && !sendTxState.recipientName) {
+      sendTxState.recipientName = reverseName;
+    }
     populateSendReview();
     await configureSendUnlockUI();
     showSendReviewView();
