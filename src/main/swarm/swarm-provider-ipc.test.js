@@ -254,7 +254,13 @@ describe('swarm-provider-ipc', () => {
         contentType: 'text/plain',
         name: 'greeting',
       });
-      expect(mockAddEntry).toHaveBeenCalledWith({ type: 'data', name: 'greeting', status: 'uploading' });
+      expect(mockAddEntry).toHaveBeenCalledWith({
+        type: 'data',
+        name: 'greeting',
+        status: 'uploading',
+        origin: 'myapp.eth',
+        bytesSize: Buffer.byteLength('Hello world', 'utf-8'),
+      });
       expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', expect.objectContaining({ status: 'completed' }));
     });
 
@@ -389,7 +395,10 @@ describe('swarm-provider-ipc', () => {
       }, 'myapp.eth');
 
       expect(result.error.code).toBe(-32603);
-      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', { status: 'failed' });
+      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', {
+        status: 'failed',
+        errorMessage: 'Bee upload failed',
+      });
     });
   });
 
@@ -499,7 +508,10 @@ describe('swarm-provider-ipc', () => {
         files: makeFiles(['index.html']),
       }, 'myapp.eth');
       expect(result.error.code).toBe(-32603);
-      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', { status: 'failed' });
+      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', {
+        status: 'failed',
+        errorMessage: 'Upload failed',
+      });
     });
   });
 
@@ -832,7 +844,10 @@ describe('swarm-provider-ipc', () => {
       const result = await invokeProvider('swarm_createFeed', { name: 'blog' }, 'myapp.eth');
 
       expect(result.error.code).toBe(-32603);
-      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', { status: 'failed' });
+      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', {
+        status: 'failed',
+        errorMessage: 'bee error',
+      });
     });
   });
 
@@ -937,7 +952,10 @@ describe('swarm-provider-ipc', () => {
       const result = await invokeProvider('swarm_updateFeed', { feedId: 'blog', reference: VALID_REF }, 'myapp.eth');
 
       expect(result.error.code).toBe(-32603);
-      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', { status: 'failed' });
+      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', {
+        status: 'failed',
+        errorMessage: 'network error',
+      });
     });
   });
 
@@ -1064,7 +1082,10 @@ describe('swarm-provider-ipc', () => {
       const result = await invokeProvider('swarm_writeFeedEntry', { name: 'feed', data: 'hello' }, 'myapp.eth');
 
       expect(result.error.code).toBe(-32603);
-      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', { status: 'failed' });
+      expect(mockUpdateEntry).toHaveBeenCalledWith('test-id', {
+        status: 'failed',
+        errorMessage: 'upload failed',
+      });
     });
 
     test('translates index_already_exists error', async () => {

@@ -10,7 +10,9 @@ const internalPages = ipcRenderer.sendSync('internal:get-pages');
 
 // Environment variable overrides for gateways (for advanced users)
 const defaultBeeApi = process.env.BEE_API || 'http://127.0.0.1:1633';
-const defaultIpfsGateway = process.env.IPFS_GATEWAY || 'http://127.0.0.1:8080';
+// Gateway uses `localhost` (not 127.0.0.1) so Kubo's default subdomain-gateway
+// PublicGateways entry kicks in — required for `_redirects` file support.
+const defaultIpfsGateway = process.env.IPFS_GATEWAY || 'http://localhost:8080';
 
 contextBridge.exposeInMainWorld('nodeConfig', {
   beeApi: defaultBeeApi,
@@ -46,6 +48,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('bookmarks:update', { originalTarget, bookmark }),
   removeBookmark: (target) => ipcRenderer.invoke('bookmarks:remove', target),
   resolveEns: (name) => ipcRenderer.invoke('ens:resolve', { name }),
+  resolveEnsAddress: (name) => ipcRenderer.invoke('ens:resolve-address', { name }),
+  resolveEnsReverse: (address) => ipcRenderer.invoke('ens:resolve-reverse', { address }),
   testEnsRpc: (url) => ipcRenderer.invoke('ens:test-rpc', { url }),
   // History
   getHistory: (options) => ipcRenderer.invoke('history:get', options),

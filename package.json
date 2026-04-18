@@ -91,7 +91,8 @@
     },
     "linux": {
       "target": [
-        "deb"
+        "deb",
+        "AppImage"
       ],
       "icon": "assets/icons",
       "category": "Network;WebBrowser",
@@ -175,6 +176,7 @@
     "prettier": "^3.8.1"
   },
   "dependencies": {
+    "@adraffy/ens-normalize": "^1.10.1",
     "@ensdomains/content-hash": "^3.0.0",
     "@ethersphere/bee-js": "^11.1.1",
     "@metamask/browser-passworder": "^6.0.0",
