@@ -56,7 +56,7 @@ const { registerRpcManagerIpc } = require('./wallet/rpc-manager');
 const { registerDappPermissionsIpc } = require('./wallet/dapp-permissions');
 const { registerSwarmIpc } = require('./swarm/stamp-service');
 const { registerPublishIpc } = require('./swarm/publish-service');
-const { registerPublishHistoryIpc } = require('./swarm/publish-history');
+const { registerPublishHistoryIpc, closeDb: closePublishHistoryDb } = require('./swarm/publish-history');
 const { registerSwarmPermissionsIpc } = require('./swarm/swarm-permissions');
 const { registerSwarmProviderIpc } = require('./swarm/swarm-provider-ipc');
 const { registerFeedStoreIpc } = require('./swarm/feed-store');
@@ -237,9 +237,10 @@ app.on('before-quit', async (event) => {
   }
   log.info('[App] All windows closed');
 
-  // Close history database
-  log.info('[App] Closing history database...');
+  // Close history databases
+  log.info('[App] Closing history databases...');
   closeHistoryDb();
+  closePublishHistoryDb();
 
   // Clean up any GitHub bridge temp directories
   cleanupTempDirs();

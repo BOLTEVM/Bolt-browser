@@ -239,11 +239,14 @@ async function handlePublishData(params, origin) {
     return { error: { ...ERRORS.NODE_UNAVAILABLE, message: `Node not available: ${preFlight.reason}`, data: { reason: preFlight.reason } } };
   }
 
-  // Record history entry before upload
+  // Record history entry before upload. bytesSize is populated here (not only
+  // on the success-path update) so failed rows also carry payload size.
   const historyEntry = addEntry({
     type: 'data',
     name: name || 'Published data',
     status: 'uploading',
+    origin,
+    bytesSize: size,
   });
 
   try {
@@ -257,7 +260,7 @@ async function handlePublishData(params, origin) {
 
     return { result: { reference: result.reference, bzzUrl: result.bzzUrl } };
   } catch (err) {
-    updateEntry(historyEntry.id, { status: 'failed' });
+    updateEntry(historyEntry.id, { status: 'failed', errorMessage: err.message });
     log.error(`[SwarmProvider] publishData failed for ${origin}:`, err.message);
     return { error: { ...ERRORS.INTERNAL_ERROR, message: err.message } };
   }
@@ -393,6 +396,8 @@ async function handlePublishFiles(params, origin) {
     type: 'directory',
     name: indexDocument || `${normalizedFiles.length} files`,
     status: 'uploading',
+    origin,
+    bytesSize: totalSize,
   });
 
   try {
@@ -407,7 +412,7 @@ async function handlePublishFiles(params, origin) {
 
     return { result: { reference: result.reference, bzzUrl: result.bzzUrl, tagUid: result.tagUid } };
   } catch (err) {
-    updateEntry(historyEntry.id, { status: 'failed' });
+    updateEntry(historyEntry.id, { status: 'failed', errorMessage: err.message });
     log.error(`[SwarmProvider] publishFiles failed for ${origin}:`, err.message);
     return { error: { ...ERRORS.INTERNAL_ERROR, message: err.message } };
   }
@@ -539,10 +544,13 @@ async function handleCreateFeed(params, origin) {
 
   const topicString = buildTopicString(origin, name);
 
+  // No bytesSize: feed-create / feed-update are metadata-only operations.
+  // Payload bytes are tracked on feed-entry writes (handleWriteFeedEntry).
   const historyEntry = addEntry({
     type: 'feed-create',
     name,
     status: 'uploading',
+    origin,
   });
 
   try {
@@ -569,7 +577,7 @@ async function handleCreateFeed(params, origin) {
       },
     };
   } catch (err) {
-    updateEntry(historyEntry.id, { status: 'failed' });
+    updateEntry(historyEntry.id, { status: 'failed', errorMessage: err.message });
     log.error(`[SwarmProvider] createFeed failed for ${origin}:`, err.message);
     return { error: { ...ERRORS.INTERNAL_ERROR, message: err.message } };
   }
@@ -622,13 +630,14 @@ async function handleUpdateFeed(params, origin) {
     type: 'feed-update',
     name: feedId,
     status: 'uploading',
+    origin,
   });
 
   try {
     const updateResult = await updateFeed(signerKey, topicString, reference);
 
     updateFeedReference(origin, feedId, reference);
-    updateEntry(historyEntry.id, { status: 'completed', reference });
+    updateEntry(historyEntry.id, { status: 'completed', ...updateResult, reference });
 
     log.info(`[SwarmProvider] updateFeed succeeded for ${origin}: feed=${feedId}, ref=${reference}, index=${updateResult.index}`);
 
@@ -641,7 +650,7 @@ async function handleUpdateFeed(params, origin) {
       },
     };
   } catch (err) {
-    updateEntry(historyEntry.id, { status: 'failed' });
+    updateEntry(historyEntry.id, { status: 'failed', errorMessage: err.message });
     log.error(`[SwarmProvider] updateFeed failed for ${origin}:`, err.message);
     return { error: { ...ERRORS.INTERNAL_ERROR, message: err.message } };
   }
@@ -710,6 +719,8 @@ async function handleWriteFeedEntry(params, origin) {
     type: 'feed-entry',
     name,
     status: 'uploading',
+    origin,
+    bytesSize: Buffer.byteLength(payload),
   });
 
   try {
@@ -720,7 +731,7 @@ async function handleWriteFeedEntry(params, origin) {
 
     return { result: { index: result.index } };
   } catch (err) {
-    updateEntry(historyEntry.id, { status: 'failed' });
+    updateEntry(historyEntry.id, { status: 'failed', errorMessage: err.message });
 
     // Translate known error reasons to appropriate error codes
     if (err.reason === 'index_already_exists') {
