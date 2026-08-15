@@ -231,6 +231,33 @@ contextBridge.exposeInMainWorld('radicle', {
   },
 });
 
+contextBridge.exposeInMainWorld('dswarm', {
+  start: () => ipcRenderer.invoke('dswarm:start'),
+  stop: () => ipcRenderer.invoke('dswarm:stop'),
+  getStatus: () => ipcRenderer.invoke('dswarm:getStatus'),
+  joinTopic: (topic, options) => ipcRenderer.invoke('dswarm:joinTopic', { topic, options }),
+  leaveTopic: (topic) => ipcRenderer.invoke('dswarm:leaveTopic', { topic }),
+  broadcast: (topic, data) => ipcRenderer.invoke('dswarm:broadcast', { topic, data }),
+  onStatusUpdate: (callback) => {
+    const handler = (_event, value) => callback(value);
+    ipcRenderer.on('dswarm:statusUpdate', handler);
+    ipcRenderer.invoke('dswarm:getStatus').then(callback);
+    return () => ipcRenderer.removeListener('dswarm:statusUpdate', handler);
+  },
+});
+
+contextBridge.exposeInMainWorld('freenet', {
+  start: () => ipcRenderer.invoke('freenet:start'),
+  stop: () => ipcRenderer.invoke('freenet:stop'),
+  getStatus: () => ipcRenderer.invoke('freenet:getStatus'),
+  onStatusUpdate: (callback) => {
+    const handler = (_event, value) => callback(value);
+    ipcRenderer.on('freenet:statusUpdate', handler);
+    ipcRenderer.invoke('freenet:getStatus').then(callback);
+    return () => ipcRenderer.removeListener('freenet:statusUpdate', handler);
+  },
+});
+
 contextBridge.exposeInMainWorld('githubBridge', {
   import: (url) => ipcRenderer.invoke('github-bridge:import', url),
   checkGit: () => ipcRenderer.invoke('github-bridge:check-git'),
@@ -265,7 +292,7 @@ contextBridge.exposeInMainWorld('identity', {
     ipcRenderer.invoke('identity:import-mnemonic', password, mnemonic, userKnowsPassword),
   unlock: (password) => ipcRenderer.invoke('identity:unlock', password),
   lock: () => ipcRenderer.invoke('identity:lock'),
-  injectAll: (radicleAlias = 'FreedomBrowser', force = false) => ipcRenderer.invoke('identity:inject-all', radicleAlias, force),
+  injectAll: (radicleAlias = 'BoltBrowser', force = false) => ipcRenderer.invoke('identity:inject-all', radicleAlias, force),
   exportMnemonic: (password) => ipcRenderer.invoke('identity:export-mnemonic', password),
   exportPrivateKey: (accountIndex, password) => ipcRenderer.invoke('identity:export-private-key', accountIndex, password),
   changePassword: (currentPassword, newPassword) => ipcRenderer.invoke('identity:change-password', currentPassword, newPassword),
@@ -320,6 +347,16 @@ contextBridge.exposeInMainWorld('wallet', {
 
   // RPC proxy (renderer CSP blocks direct fetch to external endpoints)
   proxyRpc: (rpcUrl, method, params) => ipcRenderer.invoke('wallet:proxy-rpc', { rpcUrl, method, params }),
+
+  // Boltows Chrome extension wallet integration
+  getBoltowsExtensionId: () => ipcRenderer.invoke('wallet:get-boltows-extension-id'),
+});
+
+contextBridge.exposeInMainWorld('tradingBot', {
+  getStatus: () => ipcRenderer.invoke('tradingbot:get-status'),
+  start: (config) => ipcRenderer.invoke('tradingbot:start', config),
+  stop: () => ipcRenderer.invoke('tradingbot:stop'),
+  updateConfig: (config) => ipcRenderer.invoke('tradingbot:update-config', config),
 });
 
 contextBridge.exposeInMainWorld('swarmNode', {

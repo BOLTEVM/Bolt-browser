@@ -361,8 +361,8 @@ export const loadTarget = (value, displayOverride = null, targetWebview = null) 
     return;
   }
 
-  // Handle freedom:// protocol for internal pages
-  const fbMatch = value.match(/^freedom:\/\/([a-zA-Z0-9-]+)$/i);
+  // Handle bolt:// and freedom:// protocol for internal pages
+  const fbMatch = value.match(/^(?:bolt|freedom):\/\/([a-zA-Z0-9-]+)$/i);
   if (fbMatch) {
     const pageName = fbMatch[1].toLowerCase();
     const pageUrl = internalPages[pageName];
@@ -691,8 +691,8 @@ const handleNavigationEvent = (event) => {
     // Check for internal pages first
     const internalPageName = getInternalPageName(event.url);
     if (internalPageName && internalPageName !== 'home') {
-      addressInput.value = `freedom://${internalPageName}`;
-      pushDebug(`[AddressBar] Internal page: freedom://${internalPageName}`);
+      addressInput.value = `Bolt://${internalPageName}`;
+      pushDebug(`[AddressBar] Internal page: Bolt://${internalPageName}`);
       electronAPI?.setWindowTitle?.(
         `${internalPageName.charAt(0).toUpperCase() + internalPageName.slice(1)}`
       );
@@ -906,8 +906,8 @@ export const initNavigation = () => {
     event.preventDefault();
     const raw = addressInput.value;
 
-    // Handle freedom:// protocol for internal pages
-    const fbMatch = raw.match(/^freedom:\/\/([a-zA-Z0-9-]+)$/i);
+    // Handle Bolt:// protocol for internal pages
+    const fbMatch = raw.match(/^Bolt:\/\/([a-zA-Z0-9-]+)$/i);
     if (fbMatch) {
       const pageName = fbMatch[1].toLowerCase();
       const pageUrl = internalPages[pageName];
@@ -1064,7 +1064,7 @@ export const initNavigation = () => {
           if (
             activeTab &&
             displayUrl &&
-            !displayUrl.startsWith('freedom://') &&
+            !displayUrl.startsWith('Bolt://') &&
             !displayUrl.startsWith('view-source:')
           ) {
             // Fetch and cache favicon in background, then update tab favicon
@@ -1239,7 +1239,7 @@ export const initNavigation = () => {
             addressInput.focus();
           }
           // Update favicon for the switched-to tab (in case it wasn't set)
-          if (!data.tab.favicon && display && !display.startsWith('freedom://')) {
+          if (!data.tab.favicon && display && !display.startsWith('Bolt://')) {
             updateTabFavicon(data.tab.id, display);
           }
         }

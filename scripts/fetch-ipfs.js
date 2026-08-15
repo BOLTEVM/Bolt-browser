@@ -104,7 +104,11 @@ async function main() {
 
       console.log(`Extracting ${fileName}...`);
       if (target.zip) {
-        execSync(`unzip -o "${tempDest}" -d "${targetDir}"`);
+        if (process.platform === 'win32') {
+          execSync(`tar -xf "${tempDest}" -C "${targetDir}"`);
+        } else {
+          execSync(`unzip -o "${tempDest}" -d "${targetDir}"`);
+        }
       } else {
         execSync(`tar -xzf "${tempDest}" -C "${targetDir}"`);
       }

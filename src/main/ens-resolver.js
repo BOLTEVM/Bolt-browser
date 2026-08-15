@@ -535,7 +535,7 @@ function cacheReverseResult(normalizedAddress, result) {
 // Note: this intentionally accepts any reachable http(s) URL — testing a
 // local node (anvil/geth on 127.0.0.1, an internal RPC, etc.) is the
 // primary use case, so we do not block private-IP or loopback ranges.
-// Access is gated upstream by the freedomAPI guard (internal pages only).
+// Access is gated upstream by the BoltAPI guard (internal pages only).
 async function testRpcUrl(url) {
   const trimmed = (url || '').trim();
   if (!trimmed) {

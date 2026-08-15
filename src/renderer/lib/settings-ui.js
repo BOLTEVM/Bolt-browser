@@ -1,5 +1,5 @@
 // Theme bootstrap and chrome-side reactions to settings:updated broadcasts.
-// The settings form itself lives at freedom://settings.
+// The settings form itself lives at Bolt://settings.
 
 import { pushDebug } from './debug.js';
 

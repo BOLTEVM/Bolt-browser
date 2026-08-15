@@ -1,7 +1,7 @@
 /**
  * Service Registry - Central tracking of IPFS and Swarm node state
  *
- * This module provides a port-agnostic way for Freedom to access nodes.
+ * This module provides a port-agnostic way for Bolt to access nodes.
  * All URL rewriting resolves through this registry.
  */
 
@@ -42,6 +42,26 @@ const registry = {
     tempMessage: null,
     tempMessageTimeout: null,
   },
+  dswarm: {
+    api: null,        // e.g., 'dswarm://localhost'
+    gateway: null,    // e.g., 'dweb://localhost'
+    mode: MODE.NONE,
+    peerCount: 0,
+    activeTopics: 0,
+    statusMessage: null,
+    tempMessage: null,
+    tempMessageTimeout: null,
+  },
+  freenet: {
+    api: null,        // e.g., 'http://127.0.0.1:50509'
+    gateway: null,    // e.g., 'http://127.0.0.1:50509'
+    ws: null,         // e.g., 'ws://127.0.0.1:50509/ws'
+    mode: MODE.NONE,
+    peerCount: 0,
+    statusMessage: null,
+    tempMessage: null,
+    tempMessageTimeout: null,
+  },
 };
 
 // Default ports
@@ -63,6 +83,16 @@ const DEFAULTS = {
     p2pPort: 8776,    // radicle-node P2P port
     fallbackRange: 10,
   },
+  dswarm: {
+    dhtPort: 49737,
+    p2pPort: 49738,
+    fallbackRange: 10,
+  },
+  freenet: {
+    httpPort: 50509,
+    wsPort: 50509,
+    fallbackRange: 10,
+  },
 };
 
 /**
@@ -80,6 +110,8 @@ function getRegistry() {
     ipfs: { ...registry.ipfs },
     bee: { ...registry.bee },
     radicle: { ...registry.radicle },
+    dswarm: { ...registry.dswarm },
+    freenet: { ...registry.freenet },
   };
 }
 
@@ -248,6 +280,27 @@ function getRadicleApiUrl() {
 }
 
 /**
+ * Get URL for DSwarm API
+ */
+function getDSwarmApiUrl() {
+  return registry.dswarm.api || `dswarm://127.0.0.1:${DEFAULTS.dswarm.p2pPort}`;
+}
+
+/**
+ * Get URL for Freenet HTTP Gateway
+ */
+function getFreenetGatewayUrl() {
+  return registry.freenet.gateway || `http://127.0.0.1:${DEFAULTS.freenet.httpPort}`;
+}
+
+/**
+ * Get URL for Freenet WebSocket API
+ */
+function getFreenetWsUrl() {
+  return registry.freenet.ws || `ws://127.0.0.1:${DEFAULTS.freenet.wsPort}/ws`;
+}
+
+/**
  * Register IPC handlers for service registry
  */
 function registerServiceRegistryIpc() {
@@ -273,6 +326,9 @@ module.exports = {
   getBeeApiUrl,
   getBeeGatewayUrl,
   getRadicleApiUrl,
+  getDSwarmApiUrl,
+  getFreenetGatewayUrl,
+  getFreenetWsUrl,
   broadcastRegistryUpdate,
   registerServiceRegistryIpc,
 };

@@ -1,7 +1,7 @@
 /**
  * User data migration module
  *
- * Migrates user data from "Freedom Browser" to "Freedom" directory
+ * Migrates user data from "Bolt Browser" to "Bolt" directory
  * when the app name changes. This ensures users don't lose their:
  * - Settings
  * - Bookmarks
@@ -15,8 +15,8 @@ const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const OLD_APP_NAME = 'Freedom Browser';
-const MIGRATION_MARKER = '.migrated-from-freedom-browser';
+const OLD_APP_NAME = 'Bolt Browser';
+const MIGRATION_MARKER = '.migrated-from-Bolt-browser';
 
 /**
  * Get the old userData path (before app name change)
@@ -41,7 +41,7 @@ function isEffectivelyEmpty(dir) {
 }
 
 /**
- * Migrate user data from old "Freedom Browser" directory to new "Freedom" directory
+ * Migrate user data from old "Bolt Browser" directory to new "Bolt" directory
  *
  * Uses move (rename) instead of copy for speed and to avoid doubling disk usage.
  * bee-data/ and ipfs-data/ can be gigabytes - moving is instant, copying takes minutes.

@@ -287,7 +287,7 @@ async function updateSecurityStatus() {
 
 /**
  * Open the sidebar, switch to the Nodes tab, and surface the publish-setup
- * checklist. Single entry point used by the freedom://settings deep-link.
+ * checklist. Single entry point used by the Bolt://settings deep-link.
  *
  * Bails out when:
  *  - the Identity & Wallet feature is disabled (sidebar.open() would no-op

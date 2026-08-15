@@ -87,11 +87,11 @@ describe('autocomplete-utils', () => {
     });
 
     test('adds root-domain suggestions for matching history deeplinks', () => {
-      const suggestions = generateSuggestions('freedom', {
+      const suggestions = generateSuggestions('Bolt', {
         historyItems: [
           {
-            url: 'https://freedom.dev/docs/testing',
-            title: 'Freedom docs',
+            url: 'https://Bolt.dev/docs/testing',
+            title: 'Bolt docs',
             visit_count: 3,
           },
         ],
@@ -99,8 +99,8 @@ describe('autocomplete-utils', () => {
 
       expect(suggestions).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ url: 'https://freedom.dev/docs/testing' }),
-          expect.objectContaining({ url: 'https://freedom.dev' }),
+          expect.objectContaining({ url: 'https://Bolt.dev/docs/testing' }),
+          expect.objectContaining({ url: 'https://Bolt.dev' }),
         ])
       );
     });

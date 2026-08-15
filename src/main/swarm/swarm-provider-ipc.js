@@ -11,7 +11,7 @@
  *
  * Trust model for origin:
  *   The main process trusts the origin string from the renderer because:
- *   (a) The renderer is Freedom's own code, not arbitrary web content.
+ *   (a) The renderer is Bolt's own code, not arbitrary web content.
  *   (b) The renderer derives origin from the per-webview display URL
  *       (via getDisplayUrlForWebview), not from the page's window.location
  *       which is http://127.0.0.1:port for all dweb pages.

@@ -167,7 +167,7 @@
 
     // External URLs - open in new tab
     if (/^https?:\/\//i.test(href) || /^mailto:/i.test(href)) {
-      window.freedomAPI?.openInNewTab?.(href);
+      window.BoltAPI?.openInNewTab?.(href);
       return;
     }
 
@@ -293,11 +293,11 @@
 
   // Fetch repo payload via CLI (workaround for radicle-httpd bug)
   async function fetchPayloadViaCli() {
-    if (!window.freedomAPI?.getRadicleRepoPayload) {
+    if (!window.BoltAPI?.getRadicleRepoPayload) {
       return null;
     }
     try {
-      const result = await window.freedomAPI.getRadicleRepoPayload(rid);
+      const result = await window.BoltAPI.getRadicleRepoPayload(rid);
       if (result.success && result.payload) {
         return result.payload;
       }
@@ -911,8 +911,8 @@
     seedStatus.textContent = 'Seeding repository... This may take a moment.';
 
     try {
-      if (window.freedomAPI?.seedRadicle) {
-        const result = await window.freedomAPI.seedRadicle(rid);
+      if (window.BoltAPI?.seedRadicle) {
+        const result = await window.BoltAPI.seedRadicle(rid);
         if (result.success) {
           seedStatus.className = 'seed-status show success';
           seedStatus.textContent = 'Repository seeded successfully! Reloading...';
@@ -921,7 +921,7 @@
           throw new Error(getErrorMessage(result));
         }
       } else {
-        throw new Error('Freedom API not available');
+        throw new Error('Bolt API not available');
       }
     } catch (err) {
       seedBtn.disabled = false;
@@ -963,7 +963,7 @@
     // This handles the case where user activates the node and then refreshes
     if (params.get('status') === 'offline') {
       try {
-        const status = await window.freedomAPI?.getRadicleStatus?.();
+        const status = await window.BoltAPI?.getRadicleStatus?.();
         if (status?.status !== 'running') {
           // Node is still not running, show error immediately
           showState('connection-error');

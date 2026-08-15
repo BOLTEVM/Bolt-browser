@@ -8,7 +8,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http: https:; connect-src 'self' http://127.0.0.1:*;"
     />
-    <title>Freedom</title>
+    <title>Bolt</title>
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./styles/sidebar.css" />
   </head>
@@ -16,7 +16,7 @@
     <!-- Update Toast Notification -->
     <div id="update-toast" class="update-toast" hidden>
       <div class="update-toast-content">
-        <span id="update-toast-message">Update available for Freedom</span>
+        <span id="update-toast-message">Update available for Bolt</span>
         <button id="update-toast-action" class="update-toast-btn" hidden>Install now</button>
         <button id="update-toast-close" class="update-toast-close" aria-label="Close">×</button>
       </div>
@@ -626,6 +626,12 @@
           <div class="menu-divider"></div>
 
           <!-- Group 6: Settings -->
+          <button id="wallet-menu-btn" class="menu-item hidden" type="button">
+            <span class="menu-item-label">Open Boltows Wallet</span>
+          </button>
+          <button id="tradingbot-menu-btn" class="menu-item" type="button">
+            <span class="menu-item-label">Trading Bot (blever)</span>
+          </button>
           <button id="settings-btn" class="menu-item" type="button">
             <span class="menu-item-label">Settings</span>
           </button>
@@ -634,7 +640,7 @@
 
           <!-- Group 7: About & Updates -->
           <button id="about-btn" class="menu-item" type="button">
-            <span class="menu-item-label">About Freedom</span>
+            <span class="menu-item-label">About Bolt</span>
           </button>
           <button id="check-updates-btn" class="menu-item" type="button">
             <span class="menu-item-label">Check for Updates…</span>
@@ -2377,12 +2383,12 @@
         <!-- Step 1: Welcome -->
         <div class="onboarding-step welcome-step" data-step="welcome">
           <div class="onboarding-header">
-            <h2>Welcome to Freedom</h2>
+            <h2>Welcome to Bolt</h2>
             <p class="onboarding-subtitle">Your gateway to the decentralized web</p>
           </div>
           <div class="onboarding-body">
             <p class="onboarding-description">
-              Freedom Browser uses a unified identity to connect you to decentralized networks.
+              Bolt Browser uses a unified identity to connect you to decentralized networks.
               Your identity is secured with a recovery phrase that only you control.
             </p>
           </div>

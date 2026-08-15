@@ -1,9 +1,9 @@
 # BOLT Browser
 
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
-[![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](https://github.com/solardev-xyz/freedom-browser/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](https://github.com/solardev-xyz/Bolt-browser/releases)
 
-Freedom is a browser for the decentralized web, with Swarm, IPFS, Radicle, and ENS as first-class protocols.
+Bolt is a browser for the decentralized web, with Swarm, IPFS, Radicle, and ENS as first-class protocols.
 It ships with integrated Swarm, IPFS, and Radicle nodes, enabling direct peer-to-peer network access without relying on centralized HTTP gateways. Radicle is available on macOS and Linux; the Windows build ships without Radicle until official Windows binaries are published upstream.
 
 ---
@@ -38,7 +38,7 @@ It ships with integrated Swarm, IPFS, and Radicle nodes, enabling direct peer-to
 
 ## Architecture
 
-Freedom Browser is an Electron application. Protocol logic lives in the main process; the renderer is a modular UI layer that talks to it over IPC (channels defined in `src/shared/ipc-channels.js`). The main process manages node lifecycles (`bee-manager.js`, `ipfs-manager.js`, `radicle-manager.js`), URL rewriting (`request-rewriter.js`), and persistent data (settings, bookmarks, history). A central `service-registry.js` tracks node endpoints, modes, and status, and broadcasts state to all windows — both node managers and the request rewriter read from it.
+Bolt Browser is an Electron application. Protocol logic lives in the main process; the renderer is a modular UI layer that talks to it over IPC (channels defined in `src/shared/ipc-channels.js`). The main process manages node lifecycles (`bee-manager.js`, `ipfs-manager.js`, `radicle-manager.js`), URL rewriting (`request-rewriter.js`), and persistent data (settings, bookmarks, history). A central `service-registry.js` tracks node endpoints, modes, and status, and broadcasts state to all windows — both node managers and the request rewriter read from it.
 
 When a user enters a `bzz://`, `ipfs://`, `ipns://`, `rad://`, or ENS URL, the main process rewrites it to the active gateway URL via the registry, and subsequent webview requests are normalized to stay within the active hash/CID/RID base. `rad://` handling is gated by the Radicle integration setting.
 
@@ -48,7 +48,7 @@ When a user enters a `bzz://`, `ipfs://`, `ipns://`, `rad://`, or ENS URL, the m
 
 ### Triple Node Architecture
 
-Freedom runs Swarm, IPFS, and Radicle nodes, giving you access to three major decentralized networks from a single interface.
+Bolt runs Swarm, IPFS, and Radicle nodes, giving you access to three major decentralized networks from a single interface.
 
 |                      | Swarm          | IPFS                                  | Radicle                        |
 | -------------------- | -------------- | ------------------------------------- | ------------------------------ |
@@ -63,18 +63,18 @@ Freedom runs Swarm, IPFS, and Radicle nodes, giving you access to three major de
 
 ### Smart Node Connection
 
-Freedom intelligently manages node connections:
+Bolt intelligently manages node connections:
 
 1. **Detect Existing Nodes**: On launch, checks if Swarm, IPFS, or Radicle nodes are already running on default ports
-2. **Reuse When Available**: If a healthy node is detected, Freedom connects to it instead of starting a new one
-3. **Automatic Fallback**: If default ports are busy (but not by a compatible node), Freedom starts bundled nodes on alternative ports
+2. **Reuse When Available**: If a healthy node is detected, Bolt connects to it instead of starting a new one
+3. **Automatic Fallback**: If default ports are busy (but not by a compatible node), Bolt starts bundled nodes on alternative ports
 4. **Visual Feedback**: The Nodes panel shows connection status, including when using an external node or fallback port
 
-This means Freedom works seamlessly whether you:
+This means Bolt works seamlessly whether you:
 
 - Run it standalone (bundled Swarm and IPFS nodes start automatically; Radicle is optional and behind an Experimental setting)
-- Already have system-wide Bee/IPFS/Radicle daemons running (Freedom reuses them)
-- Have port conflicts with other software (Freedom finds available ports)
+- Already have system-wide Bee/IPFS/Radicle daemons running (Bolt reuses them)
+- Have port conflicts with other software (Bolt finds available ports)
 
 ### Integrated Swarm Bee Node
 
@@ -171,7 +171,7 @@ The address bar also provides **autocomplete suggestions** from browsing history
 ### Browsing History
 
 - **Automatic Recording**: Pages are recorded as you browse.
-- **History Page**: View and search your browsing history at `freedom://history`.
+- **History Page**: View and search your browsing history at `Bolt://history`.
 
 ### Context Menus
 
@@ -200,21 +200,21 @@ Right-click on pages for context-sensitive actions:
 
 ### Internal Pages
 
-Access built-in browser pages using the `freedom://` protocol:
+Access built-in browser pages using the `Bolt://` protocol:
 
 | Page                      | Description                  |
 | ------------------------- | ---------------------------- |
-| `freedom://home`          | Welcome/home page            |
-| `freedom://history`       | Browsing history             |
-| `freedom://links`         | Link behavior test page      |
-| `freedom://protocol-test` | Protocol and media test page |
+| `Bolt://home`          | Welcome/home page            |
+| `Bolt://history`       | Browsing history             |
+| `Bolt://links`         | Link behavior test page      |
+| `Bolt://protocol-test` | Protocol and media test page |
 | `rad://{rid}`             | Radicle repository browser   |
 
 ### Settings & UI
 
 - **Theme**: Light, Dark, or System (follows OS preference).
 - **Node Auto-start**: Toggle whether Swarm and IPFS nodes start automatically at launch (enabled by default).
-- **Experimental**: Enable Radicle integration (Beta) and set `Start Radicle node when Freedom opens`.
+- **Experimental**: Enable Radicle integration (Beta) and set `Start Radicle node when Bolt opens`.
 - **Auto-Updates**: Toggle automatic update checks (enabled by default).
 - **Protocol Icons**: Address bar shows Swarm (hexagon), IPFS (cube), Radicle (seedling), or HTTP (globe) icon based on current protocol.
 - **Hamburger Menu**: Access browser features (New Tab, New Window, History, Zoom, Print, Developer Tools, Settings, About).
@@ -232,7 +232,7 @@ Access built-in browser pages using the `freedom://` protocol:
 
 ### Node Endpoints
 
-Freedom automatically manages node connections. By default:
+Bolt automatically manages node connections. By default:
 
 - **Swarm Bee**: `http://127.0.0.1:1633`
 - **IPFS Gateway**: `http://localhost:8080` (`localhost`, not `127.0.0.1`, so Kubo's built-in subdomain gateway kicks in — required for `_redirects` SPA support)
@@ -267,7 +267,7 @@ heliosup
 # Run with an RPC provider
 helios ethereum --execution-rpc https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY
 
-# Configure Freedom to use local Helios
+# Configure Bolt to use local Helios
 export ETH_RPC="http://127.0.0.1:8545"
 npm start
 ```
@@ -352,12 +352,12 @@ The main process uses [electron-log](https://github.com/megahertz/electron-log) 
 | Production (packaged app)   | `warn` and above    | `info` and above |
 | `DEBUG=1` (any environment) | `verbose` and above | `info` and above |
 
-Log files are written to the standard electron-log location (`~/Library/Logs/Freedom/` on macOS).
+Log files are written to the standard electron-log location (`~/Library/Logs/Bolt/` on macOS).
 
 To enable verbose logging in a packaged app:
 
 ```bash
-DEBUG=1 /Applications/Freedom.app/Contents/MacOS/Freedom
+DEBUG=1 /Applications/Bolt.app/Contents/MacOS/Bolt
 ```
 
 ### Debugging
@@ -396,7 +396,7 @@ The build includes:
 
 #### Linux
 
-Freedom uses `better-sqlite3` for history and favicon caching, which is a native Node.js module. When cross-compiling for Linux from macOS, the native module must be compiled for the target platform.
+Bolt uses `better-sqlite3` for history and favicon caching, which is a native Node.js module. When cross-compiling for Linux from macOS, the native module must be compiled for the target platform.
 
 **Docker is required for Linux builds with working SQLite support:**
 
@@ -487,7 +487,7 @@ a keychain profile instead with `NOTARY_PROFILE=your-profile`.
 
 ### Deploying Updates
 
-Freedom includes **non-intrusive auto-update functionality** that silently checks for and downloads updates in the background.
+Bolt includes **non-intrusive auto-update functionality** that silently checks for and downloads updates in the background.
 
 **Update Experience:**
 
@@ -497,14 +497,14 @@ Freedom includes **non-intrusive auto-update functionality** that silently check
 
 **Server Setup:**
 
-After building distributable packages with `npm run dist -- --mac`, upload the following files to `https://freedom.baby/downloads/`:
+After building distributable packages with `npm run dist -- --mac`, upload the following files to `https://Bolt.baby/downloads/`:
 
 ```
 latest-mac.yml       # Auto-generated update metadata
-Freedom-{version}-arm64-mac.zip
-Freedom-{version}-arm64.dmg
-Freedom-{version}-arm64-mac.zip.blockmap
-Freedom-{version}-arm64.dmg.blockmap
+Bolt-{version}-arm64-mac.zip
+Bolt-{version}-arm64.dmg
+Bolt-{version}-arm64-mac.zip.blockmap
+Bolt-{version}-arm64.dmg.blockmap
 ```
 
 **Update Flow:**
@@ -540,7 +540,7 @@ npm run start:test-updater
 
 - **Context Isolation**: Uses `contextIsolation: true` and `nodeIntegration: false`.
 - **Remote Module Disabled**: The remote module is not available.
-- **Minimal API Surface**: Only necessary IPC methods are exposed to the renderer. The `freedomAPI` (history, bookmarks, etc.) is restricted to internal `freedom://` pages — external websites cannot call it.
+- **Minimal API Surface**: Only necessary IPC methods are exposed to the renderer. The `BoltAPI` (history, bookmarks, etc.) is restricted to internal `Bolt://` pages — external websites cannot call it.
 - **Local Nodes**: Bee, IPFS, and Radicle run locally; no external services required for basic operation.
 - **Permission Handling**: Pointer lock and fullscreen permissions are granted for better UX in Swarm/IPFS apps.
 - **Public RPC Fallback**: ENS resolution uses public RPCs by default. For trustless verification, use a local Helios client.
@@ -551,29 +551,29 @@ npm run start:test-updater
 
 ### Bee fails to start
 
-- Freedom automatically detects port conflicts and uses fallback ports
+- Bolt automatically detects port conflicts and uses fallback ports
 - If the node still fails, check terminal output for specific error messages
 - Reset Bee data: `npm run bee:reset`
 
 ### IPFS fails to start
 
-- Freedom automatically detects port conflicts and uses fallback ports
+- Bolt automatically detects port conflicts and uses fallback ports
 - Check for stale lock file: the app should auto-clean, but you can manually delete `ipfs-data/repo.lock`
 - Reset IPFS data: `npm run ipfs:reset`
 
 ### Radicle fails to start
 - Ensure **Settings → Experimental → Enable Radicle integration (Beta)** is enabled
-- Freedom automatically detects port conflicts and uses fallback ports
+- Bolt automatically detects port conflicts and uses fallback ports
 - Ensure both `radicle-node` and `radicle-httpd` binaries exist in `radicle-bin/`
-- If starting for the first time, Freedom creates a Radicle identity automatically
+- If starting for the first time, Bolt creates a Radicle identity automatically
 - Check terminal output for specific error messages
 - Reset Radicle data: `npm run radicle:reset`
 
 ### Using an external node
 
-- If you have a system-wide Bee, IPFS, or Radicle daemon running, Freedom will detect and reuse it
+- If you have a system-wide Bee, IPFS, or Radicle daemon running, Bolt will detect and reuse it
 - The Nodes panel will show "Node: localhost:PORT" when connected to an external node
-- The toggle switch is disabled for external nodes (can't stop a node Freedom didn't start)
+- The toggle switch is disabled for external nodes (can't stop a node Bolt didn't start)
 
 ### ENS resolution not working
 

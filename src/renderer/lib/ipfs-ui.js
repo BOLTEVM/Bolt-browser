@@ -212,7 +212,7 @@ export const updateIpfsToggleState = () => {
 
   if (isReused) {
     ipfsToggleBtn.classList.add('external');
-    ipfsToggleBtn.setAttribute('title', 'Using existing node — cannot be controlled from Freedom');
+    ipfsToggleBtn.setAttribute('title', 'Using existing node — cannot be controlled from Bolt');
   } else if (ipfsBinaryAvailable) {
     ipfsToggleBtn.classList.remove('external');
     ipfsToggleBtn.removeAttribute('title');

@@ -86,7 +86,7 @@ setReloadHandler(reloadPage);
 setHardReloadHandler(hardReloadPage);
 setOnNavigate(loadTarget);
 setOnHistoryRecorded(refreshAutocompleteCache);
-setOnOpenHistory(() => loadTarget('freedom://history'));
+setOnOpenHistory(() => loadTarget('Bolt://history'));
 setOnNewTab(() => createTab());
 setOnOpenRadicleUrl((url) => loadTarget(url));
 setOnMenuOpening(hideAutocomplete);
@@ -184,14 +184,23 @@ document.addEventListener('open-url-new-tab', (e) => {
 
 // Initialize all modules
 window.addEventListener('DOMContentLoaded', async () => {
+  const updateWalletMenuVisibility = (settings) => {
+    const walletMenuBtn = document.getElementById('wallet-menu-btn');
+    if (walletMenuBtn) {
+      walletMenuBtn.classList.toggle('hidden', settings?.enableBoltowsExtension !== true);
+    }
+  };
+
   try {
     const settings = await electronAPI.getSettings();
     setRadicleIntegrationEnabled(settings?.enableRadicleIntegration === true);
+    updateWalletMenuVisibility(settings);
   } catch {
     setRadicleIntegrationEnabled(false);
   }
   window.addEventListener('settings:updated', (event) => {
     setRadicleIntegrationEnabled(event.detail?.enableRadicleIntegration === true);
+    updateWalletMenuVisibility(event.detail);
   });
 
   initMenuBackdrop(closeAllOverlays);
@@ -200,9 +209,27 @@ window.addEventListener('DOMContentLoaded', async () => {
   initIpfsUi();
   initRadicleUi();
   initGithubBridgeUi();
+  document.getElementById('wallet-menu-btn')?.addEventListener('click', async () => {
+    closeMenus();
+    try {
+      const extId = await window.wallet.getBoltowsExtensionId();
+      if (extId) {
+        createTab(`chrome-extension://${extId}/index.html`, { activate: true });
+      } else {
+        alert('Boltows Wallet Extension is not loaded. Please build boltows first and restart Bolt Browser.');
+      }
+    } catch (err) {
+      console.error('Failed to get Boltows extension ID:', err);
+      alert('Failed to get Boltows extension ID: ' + err.message);
+    }
+  });
   document.getElementById('settings-btn')?.addEventListener('click', () => {
     closeMenus();
-    loadTarget('freedom://settings');
+    loadTarget('Bolt://settings');
+  });
+  document.getElementById('tradingbot-menu-btn')?.addEventListener('click', () => {
+    closeMenus();
+    loadTarget('Bolt://tradingbot');
   });
   initBookmarks();
   initNavigation(); // Sets up event handler with tabs module

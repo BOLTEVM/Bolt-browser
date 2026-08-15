@@ -20,7 +20,7 @@ const log = require('electron-log');
 const USER_ORIGIN = 'freedom://publish';
 
 /**
- * Normalize an UploadResult to a Freedom publish result.
+ * Normalize an UploadResult to a Bolt publish result.
  */
 function normalizeUploadResult(result, batchIdUsed, bytesSize) {
   const reference = toHex(result.reference);
@@ -34,7 +34,7 @@ function normalizeUploadResult(result, batchIdUsed, bytesSize) {
 }
 
 /**
- * Normalize a Bee Tag to a Freedom upload status.
+ * Normalize a Bee Tag to a Bolt upload status.
  */
 function normalizeTag(tag) {
   const split = tag.split || 0;
@@ -151,7 +151,7 @@ async function publishDirectory(dirPath, options = {}) {
  * @param {{ indexDocument?: string }} options
  */
 async function publishFilesFromContent(files, options = {}) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'freedom-swarm-publish-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'Bolt-swarm-publish-'));
 
   try {
     for (const file of files) {
@@ -211,13 +211,13 @@ async function getUploadStatus(tagUid) {
  *
  * They MUST only be reachable from trusted internal contexts:
  *
- *   - The shell renderer (Freedom's own UI) via src/main/preload.js, which
+ *   - The shell renderer (Bolt's own UI) via src/main/preload.js, which
  *     is not injected into webviews.
  *   - Internal app pages opened in a webview: webview-preload.js wraps
- *     freedomAPI.swarm.* in guardInternal(), which calls isInternalPage().
+ *     BoltAPI.swarm.* in guardInternal(), which calls isInternalPage().
  *     That allows only bundled pages loaded as file: URLs whose pathname ends
  *     with /pages/<file> for a whitelisted file from internal-pages.json
- *     (e.g. publish.html for freedom://publish in the address bar). Arbitrary
+ *     (e.g. publish.html for Bolt://publish in the address bar). Arbitrary
  *     https://, bzz://, etc. in the webview does not pass the guard.
  *
  * Arbitrary web content MUST NOT be able to reach these handlers — it must

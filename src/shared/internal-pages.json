@@ -5,7 +5,9 @@
     "links": "links.html",
     "protocol-test": "protocol-test.html",
     "publish": "publish.html",
-    "settings": "settings.html"
+    "settings": "settings.html",
+    "tradingbot": "tradingbot.html",
+    "dswarm": "dswarm.html"
   },
   "other": ["error.html", "rad-browser.html"]
 }

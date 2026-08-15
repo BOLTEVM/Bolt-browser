@@ -160,7 +160,7 @@ function loadGithubBridgeModule(options = {}) {
   const execFileAsync = options.execFileAsync || jest.fn();
   const radicleDataPath = options.radicleDataPath || '/mock/radicle-data';
   const radicleBinDir = options.radicleBinDir || '/mock/radicle/bin';
-  const tempDir = options.tempDir || '/tmp/freedom-bridge-12345';
+  const tempDir = options.tempDir || '/tmp/Bolt-bridge-12345';
   const mapPath = `${radicleDataPath}/github-bridge-map.json`;
   const fsMock = {
     existsSync: jest.fn((target) => {
@@ -246,7 +246,7 @@ describe('github-bridge', () => {
 
   describe('validateGitHubUrl', () => {
     test.each([
-      ['https://github.com/solardev-xyz/freedom-browser', 'solardev-xyz', 'freedom-browser'],
+      ['https://github.com/solardev-xyz/Bolt-browser', 'solardev-xyz', 'Bolt-browser'],
       ['https://github.com/owner/repo.git', 'owner', 'repo'],
       ['github.com/owner/repo', 'owner', 'repo'],
       ['owner/repo', 'owner', 'repo'],
@@ -591,12 +591,12 @@ describe('github-bridge', () => {
       expect(execFileAsync).toHaveBeenNthCalledWith(2, 'git', [
         'clone',
         'https://github.com/openai/project.git',
-        '/tmp/freedom-bridge-12345/project',
+        '/tmp/Bolt-bridge-12345/project',
       ], {
         timeout: 300000,
       });
       expect(execFileAsync).toHaveBeenNthCalledWith(3, 'git', ['symbolic-ref', '--short', 'HEAD'], {
-        cwd: '/tmp/freedom-bridge-12345/project',
+        cwd: '/tmp/Bolt-bridge-12345/project',
         timeout: 5000,
       });
       expect(execFileAsync).toHaveBeenNthCalledWith(4, '/mock/radicle/bin/rad', [
@@ -610,7 +610,7 @@ describe('github-bridge', () => {
         '--public',
         '--no-confirm',
       ], expect.objectContaining({
-        cwd: '/tmp/freedom-bridge-12345/project',
+        cwd: '/tmp/Bolt-bridge-12345/project',
         timeout: 60000,
         env: expect.objectContaining({
           RAD_HOME: '/mock/radicle-data',

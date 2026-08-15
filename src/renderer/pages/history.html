@@ -504,7 +504,7 @@
     </div>
 
     <script>
-      // freedomAPI is exposed globally by webview-preload.js via contextBridge
+      // BoltAPI is exposed globally by webview-preload.js via contextBridge
 
       const container = document.getElementById('history-container');
       const searchInput = document.getElementById('search-input');
@@ -719,7 +719,7 @@
             const url = item.dataset.url;
             if (url) {
               // Open in new tab
-              freedomAPI.openInNewTab(url);
+              BoltAPI.openInNewTab(url);
             }
           });
         });
@@ -728,8 +728,8 @@
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const id = parseInt(btn.dataset.id, 10);
-            if (id && freedomAPI?.removeHistory) {
-              await freedomAPI.removeHistory(id);
+            if (id && BoltAPI?.removeHistory) {
+              await BoltAPI.removeHistory(id);
               loadHistory();
             }
           });
@@ -741,7 +741,7 @@
 
       // Load favicons asynchronously
       async function loadFavicons() {
-        if (!freedomAPI?.getCachedFavicon) return;
+        if (!BoltAPI?.getCachedFavicon) return;
 
         const containers = container.querySelectorAll('.favicon-container');
         for (const faviconContainer of containers) {
@@ -749,7 +749,7 @@
           if (!url) continue;
 
           try {
-            const favicon = await freedomAPI.getCachedFavicon(url);
+            const favicon = await BoltAPI.getCachedFavicon(url);
             if (favicon) {
               const protocolIcon = faviconContainer.querySelector('.protocol-icon-full');
               const protocolBadge = faviconContainer.querySelector('.protocol-badge');
@@ -792,12 +792,12 @@
       // Load history from main process
       async function loadHistory() {
         try {
-          if (!freedomAPI?.getHistory) {
+          if (!BoltAPI?.getHistory) {
             container.innerHTML = '<div class="empty-state"><p>History API not available</p></div>';
             return;
           }
 
-          allHistory = await freedomAPI.getHistory();
+          allHistory = await BoltAPI.getHistory();
           statsEl.textContent = `${allHistory.length} entries`;
           renderHistory(allHistory);
         } catch (err) {
@@ -827,8 +827,8 @@
         if (!confirm('Are you sure you want to clear all browsing history?')) return;
 
         try {
-          if (freedomAPI?.clearHistory) {
-            await freedomAPI.clearHistory();
+          if (BoltAPI?.clearHistory) {
+            await BoltAPI.clearHistory();
             loadHistory();
           }
         } catch (err) {

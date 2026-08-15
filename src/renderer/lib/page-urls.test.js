@@ -47,14 +47,14 @@ describe('page-urls', () => {
     const mod = await loadModule();
 
     expect(mod.isHistoryRecordable('', 'https://example.com')).toBe(false);
-    expect(mod.isHistoryRecordable('freedom://history', 'file:///app/pages/history.html')).toBe(false);
+    expect(mod.isHistoryRecordable('Bolt://history', 'file:///app/pages/history.html')).toBe(false);
     expect(mod.isHistoryRecordable('view-source:https://example.com', 'view-source:https://example.com')).toBe(false);
     expect(mod.isHistoryRecordable('https://example.com', 'file:///app/pages/error.html')).toBe(false);
     expect(mod.isHistoryRecordable('https://example.com', mod.homeUrl)).toBe(false);
     expect(mod.isHistoryRecordable('https://example.com', 'https://example.com')).toBe(true);
   });
 
-  test('maps internal page urls back to freedom:// names', async () => {
+  test('maps internal page urls back to Bolt:// names', async () => {
     const mod = await loadModule({
       history: 'history.html',
       links: 'links.html',

@@ -10,7 +10,7 @@ const os = require('os');
 
 // Determine userData path based on platform
 function getUserDataPath() {
-  const appName = 'Freedom';
+  const appName = 'Bolt';
   switch (process.platform) {
     case 'darwin':
       return path.join(os.homedir(), 'Library', 'Application Support', appName);

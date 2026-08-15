@@ -29,7 +29,7 @@ const isAllowedBaseUrl = (value) => {
 };
 
 const formatWindowTitle = (title) => {
-  return title?.trim() ? `${title.trim()} - Freedom` : 'Freedom';
+  return title?.trim() ? `${title.trim()} - Bolt` : 'Bolt';
 };
 
 function registerBaseIpcHandlers(callbacks = {}) {

@@ -219,7 +219,7 @@ describe('ipfs-ui', () => {
     ctx.mod.updateIpfsToggleState();
     expect(ctx.elements.ipfsToggleBtn.classList.contains('external')).toBe(true);
     expect(ctx.elements.ipfsToggleBtn.getAttribute('title')).toBe(
-      'Using existing node — cannot be controlled from Freedom'
+      'Using existing node — cannot be controlled from Bolt'
     );
 
     ctx.state.registry.ipfs.mode = 'none';

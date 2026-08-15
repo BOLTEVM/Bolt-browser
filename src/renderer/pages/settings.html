@@ -497,7 +497,7 @@
 
       <main class="content">
         <h1>Settings</h1>
-        <p class="page-subtitle">Configure how Freedom behaves on your machine.</p>
+        <p class="page-subtitle">Configure how Bolt behaves on your machine.</p>
 
         <!-- Appearance -->
         <section class="section" id="appearance">
@@ -523,7 +523,7 @@
         <!-- Startup -->
         <section class="section" id="startup">
           <h2 class="section-title">Automatic Startup</h2>
-          <p class="section-subtitle">Which background nodes start when Freedom launches.</p>
+          <p class="section-subtitle">Which background nodes start when Bolt launches.</p>
           <div class="card">
             <div class="row">
               <div class="row-body">
@@ -558,7 +558,7 @@
             <div class="row">
               <div class="row-body">
                 <p class="row-label">Use a custom RPC endpoint</p>
-                <p class="row-help">Freedom uses a default public endpoint when this is off.</p>
+                <p class="row-help">Bolt uses a default public endpoint when this is off.</p>
               </div>
               <div class="row-control">
                 <label class="toggle">
@@ -622,11 +622,23 @@
             </div>
             <div class="row sub" id="start-radicle-row" data-radicle>
               <div class="row-body">
-                <p class="row-label">Start Radicle node when Freedom opens</p>
+                <p class="row-label">Start Radicle node when Bolt opens</p>
               </div>
               <div class="row-control">
                 <label class="toggle">
                   <input type="checkbox" id="start-radicle-at-launch" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-body">
+                <p class="row-label">Use Boltows Chrome Wallet Extension</p>
+                <p class="row-desc">Enables Boltows as the default Web3 Chromium provider wallet</p>
+              </div>
+              <div class="row-control">
+                <label class="toggle">
+                  <input type="checkbox" id="enable-boltows-extension" />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -637,7 +649,7 @@
         <!-- Updates -->
         <section class="section" id="updates">
           <h2 class="section-title">Updates</h2>
-          <p class="section-subtitle">How Freedom handles software updates.</p>
+          <p class="section-subtitle">How Bolt handles software updates.</p>
           <div class="card">
             <div class="row">
               <div class="row-body">
@@ -658,7 +670,7 @@
     <div id="saved-indicator" class="saved-indicator">Saved</div>
 
     <script>
-      // freedomAPI is exposed globally by webview-preload.js via contextBridge.
+      // BoltAPI is exposed globally by webview-preload.js via contextBridge.
       const $ = (id) => document.getElementById(id);
 
       const fields = {
@@ -674,6 +686,7 @@
         startRadicleRow: $('start-radicle-row'),
         startRadicle: $('start-radicle-at-launch'),
         enableIdentity: $('enable-identity-wallet'),
+        enableBoltows: $('enable-boltows-extension'),
         autoUpdate: $('auto-update'),
       };
 
@@ -742,6 +755,7 @@
         enableRadicleIntegration: isWindows ? false : fields.enableRadicle.checked,
         startRadicleAtLaunch: isWindows ? false : fields.startRadicle.checked,
         enableIdentityWallet: fields.enableIdentity.checked,
+        enableBoltowsExtension: fields.enableBoltows.checked,
         autoUpdate: fields.autoUpdate.checked,
         enableEnsCustomRpc: fields.enableEnsCustomRpc.checked,
         ensRpcUrl: (fields.ensRpcUrl.value || '').trim(),
@@ -755,6 +769,7 @@
         fields.enableRadicle.checked = settings.enableRadicleIntegration === true;
         fields.startRadicle.checked = settings.startRadicleAtLaunch === true;
         fields.enableIdentity.checked = settings.enableIdentityWallet === true;
+        fields.enableBoltows.checked = settings.enableBoltowsExtension !== false;
         fields.autoUpdate.checked = settings.autoUpdate !== false;
         fields.enableEnsCustomRpc.checked = settings.enableEnsCustomRpc === true;
         fields.ensRpcUrl.value = settings.ensRpcUrl || '';
@@ -816,7 +831,7 @@
           swarmModeHelp.textContent = 'Light — node can publish to Swarm.';
           showAction('Switch back to ultra-light', async () => {
             swarmModeBtn.disabled = true;
-            const ok = await freedomAPI.saveSettings({ beeNodeMode: 'ultraLight' });
+            const ok = await BoltAPI.saveSettings({ beeNodeMode: 'ultraLight' });
             if (!ok) swarmModeBtn.disabled = false;
           });
           return;
@@ -835,13 +850,13 @@
         swarmModeHelp.textContent =
           'Ultra-light — read-only. Set up publishing to switch to light mode.';
         showAction('Set up publishing →', () => {
-          freedomAPI.openPublishSetup().catch(() => {});
+          BoltAPI.openPublishSetup().catch(() => {});
         });
       };
 
       const refreshSwarmModeRow = async () => {
         try {
-          cachedRegistry = await freedomAPI.getServiceRegistry();
+          cachedRegistry = await BoltAPI.getServiceRegistry();
         } catch {
           cachedRegistry = null;
         }
@@ -849,7 +864,7 @@
       };
 
       const save = async () => {
-        const ok = await freedomAPI.saveSettings(currentFormState());
+        const ok = await BoltAPI.saveSettings(currentFormState());
         if (ok) {
           showSaved();
         } else {
@@ -866,6 +881,7 @@
       });
       fields.startRadicle.addEventListener('change', save);
       fields.enableIdentity.addEventListener('change', save);
+      fields.enableBoltows.addEventListener('change', save);
       fields.autoUpdate.addEventListener('change', save);
 
       fields.enableEnsCustomRpc.addEventListener('change', () => {
@@ -888,7 +904,7 @@
         setEnsRpcStatus('Testing...', 'testing');
         fields.ensRpcTest.disabled = true;
         try {
-          const result = await freedomAPI.testEnsRpc(url);
+          const result = await BoltAPI.testEnsRpc(url);
           if (result?.success) {
             setEnsRpcStatus('Connected (block #' + result.blockNumber + ')', 'success');
           } else {
@@ -914,7 +930,7 @@
       // don't clobber an in-flight edit (e.g. the ENS RPC input mid-type).
       // Always refresh the Swarm-mode row — beeNodeMode lives outside the form
       // and a flip changes the registry too.
-      freedomAPI.onSettingsUpdated?.((settings) => {
+      BoltAPI.onSettingsUpdated?.((settings) => {
         if (!settings) return;
         cachedSettings = settings;
         if (!formStateMatches(settings)) {
@@ -925,7 +941,7 @@
 
       (async () => {
         try {
-          const platform = await freedomAPI.getPlatform();
+          const platform = await BoltAPI.getPlatform();
           isWindows = platform === 'win32';
           if (isWindows) {
             // No official Radicle binaries for Windows yet.
@@ -939,8 +955,8 @@
 
         try {
           const [settings, registry] = await Promise.all([
-            freedomAPI.getSettings(),
-            freedomAPI.getServiceRegistry().catch(() => null),
+            BoltAPI.getSettings(),
+            BoltAPI.getServiceRegistry().catch(() => null),
           ]);
           cachedSettings = settings;
           cachedRegistry = registry;

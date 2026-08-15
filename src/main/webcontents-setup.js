@@ -13,7 +13,7 @@ const sanitizeUrlForLog = (rawUrl) => {
       parsed.protocol === 'bzz:' ||
       parsed.protocol === 'ipfs:' ||
       parsed.protocol === 'ipns:' ||
-      parsed.protocol === 'freedom:'
+      parsed.protocol === 'Bolt:'
     ) {
       return `${parsed.protocol}//<redacted>`;
     }
@@ -23,7 +23,7 @@ const sanitizeUrlForLog = (rawUrl) => {
       rawUrl.startsWith('bzz://') ||
       rawUrl.startsWith('ipfs://') ||
       rawUrl.startsWith('ipns://') ||
-      rawUrl.startsWith('freedom://')
+      rawUrl.startsWith('Bolt://')
     ) {
       return `${rawUrl.split('://')[0]}://<redacted>`;
     }
@@ -79,10 +79,10 @@ function registerWebContentsHandlers() {
         return { action: 'deny' };
       });
 
-      // Intercept navigation to custom protocols (freedom://, bzz://, ipfs://, ipns://)
+      // Intercept navigation to custom protocols (Bolt://, bzz://, ipfs://, ipns://)
       contents.on('will-navigate', (event, url) => {
         if (
-          url.startsWith('freedom://') ||
+          url.startsWith('Bolt://') ||
           url.startsWith('bzz://') ||
           url.startsWith('ipfs://') ||
           url.startsWith('ipns://') ||

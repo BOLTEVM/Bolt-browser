@@ -1,6 +1,6 @@
 // Set app name early, before electron-log initializes (it uses app name for log path)
 const { app } = require('electron');
-const appName = process.platform === 'linux' ? 'freedom' : 'Freedom';
+const appName = process.platform === 'linux' ? 'Bolt' : 'Bolt';
 
 // Suppress Electron security warnings in development (CSP handles security in production)
 if (!app.isPackaged) {
@@ -16,12 +16,12 @@ const iconPath = app.isPackaged
   : require('path').join(__dirname, '..', '..', 'assets', 'icon.png');
 
 app.setAboutPanelOptions({
-  applicationName: 'Freedom',
+  applicationName: 'Bolt',
   applicationVersion: version,
   version: `Electron ${process.versions.electron} · Chromium ${process.versions.chrome} · Node ${process.versions.node}`,
-  copyright: '© 2025-2026 Freedom Team\nCopyleft — MPL-2.0',
+  copyright: '© 2025-2026 Bolt Team\nCopyleft — MPL-2.0',
   credits: 'A browser for the decentralized web\nSwarm · IPFS · ENS',
-  website: 'https://freedombrowser.eth.limo/',
+  website: 'https://Boltbrowser.eth.limo/',
   iconPath,
 });
 
@@ -36,8 +36,9 @@ process.on('unhandledRejection', (reason, _promise) => {
   log.error('Unhandled rejection:', reason);
 });
 
-const { BrowserWindow, session } = require('electron');
+const { BrowserWindow, session, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { registerBaseIpcHandlers } = require('./ipc-handlers');
 const { registerRequestRewriter } = require('./request-rewriter');
 const { registerSettingsIpc, loadSettings } = require('./settings-store');
@@ -60,9 +61,12 @@ const { registerPublishHistoryIpc, closeDb: closePublishHistoryDb } = require('.
 const { registerSwarmPermissionsIpc } = require('./swarm/swarm-permissions');
 const { registerSwarmProviderIpc } = require('./swarm/swarm-provider-ipc');
 const { registerFeedStoreIpc } = require('./swarm/feed-store');
+const { registerDSwarmIpc, getDSwarmManager } = require('./dswarm/dswarm-manager');
+const { registerFreenetIpc, getFreenetManager } = require('./freenet-manager');
 const { registerGithubBridgeIpc, cleanupTempDirs } = require('./github-bridge');
 const { registerServiceRegistryIpc } = require('./service-registry');
 const { createMainWindow, setWindowTitle, getMainWindows } = require('./windows/mainWindow');
+const tradingBot = require('./tradingbot/tradingbot-service');
 const { migrateUserData } = require('./migrate-user-data');
 const { initUpdater } = require('./updater');
 const { setupApplicationMenu, updateTabMenuItems } = require('./menu');
@@ -87,13 +91,104 @@ function allowInteractivePermissions(targetSession) {
   });
 }
 
+function getUrlFromArgs(args) {
+  if (!args || args.length < 2) return null;
+  const startIndex = (args[1] === '.' || args[1] === './' || args[1] === '..') ? 2 : 1;
+  for (let i = startIndex; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('-')) {
+      continue;
+    }
+    if (/^(https?|ipfs|ipns|bzz|bolt):\/\//i.test(arg)) {
+      return arg;
+    }
+    if (arg.includes('.') && !arg.endsWith('.js') && !arg.endsWith('.json') && !arg.includes('/') && !arg.includes('\\')) {
+      return `http://${arg}`;
+    }
+  }
+  return null;
+}
+
 async function bootstrap() {
-  // Migrate user data from old "Freedom Browser" directory if needed
+  const gotTheLock = app.requestSingleInstanceLock();
+  if (!gotTheLock) {
+    log.info('[App] Another instance is already running. Quitting...');
+    app.quit();
+    return;
+  }
+
+  app.on('second-instance', (event, commandLine) => {
+    log.info('[App] Second instance launch attempt. Command line:', commandLine);
+    const windows = getMainWindows();
+    if (windows.length > 0) {
+      const myWindow = windows[0];
+      if (myWindow.isMinimized()) myWindow.restore();
+      myWindow.focus();
+
+      const url = getUrlFromArgs(commandLine);
+      if (url) {
+        log.info(`[App] Opening new tab for URL from second instance: ${url}`);
+        myWindow.webContents.send('tab:new-with-url', url);
+      }
+    } else {
+      const url = getUrlFromArgs(commandLine);
+      createMainWindow(url);
+    }
+  });
+
+  // Migrate user data from old "Bolt Browser" directory if needed
   // This must run before any modules access userData
   migrateUserData();
 
   const defaultSession = session.defaultSession;
   await defaultSession.clearCache();
+
+  // Load Boltows extension if enabled
+  const settings = loadSettings();
+  if (settings.enableBoltowsExtension) {
+    const extensionPath = path.resolve(__dirname, '..', '..', '..', 'boltows', 'apps', 'extension', 'dist');
+    if (fs.existsSync(extensionPath)) {
+      try {
+        const ext = await defaultSession.loadExtension(extensionPath, { allowFileAccess: true });
+        log.info(`[App] Loaded Boltows wallet extension. ID: ${ext.id}`);
+        global.boltowsExtensionId = ext.id;
+      } catch (err) {
+        log.error('[App] Failed to load Boltows wallet extension:', err);
+      }
+    } else {
+      log.warn(`[App] Boltows wallet extension path does not exist: ${extensionPath}`);
+    }
+  }
+
+  // Register Boltows extension ID query IPC
+  ipcMain.handle('wallet:get-boltows-extension-id', () => {
+    return global.boltowsExtensionId || null;
+  });
+
+  // Listen for dynamic settings update in the main process
+  app.on('settings-updated', async (merged) => {
+    const extensionPath = path.resolve(__dirname, '..', '..', '..', 'boltows', 'apps', 'extension', 'dist');
+    if (merged.enableBoltowsExtension && !global.boltowsExtensionId) {
+      if (fs.existsSync(extensionPath)) {
+        try {
+          const ext = await defaultSession.loadExtension(extensionPath, { allowFileAccess: true });
+          log.info(`[App] Dynamically loaded Boltows extension: ${ext.id}`);
+          global.boltowsExtensionId = ext.id;
+        } catch (err) {
+          log.error('[App] Failed to dynamically load Boltows extension:', err);
+        }
+      }
+    } else if (!merged.enableBoltowsExtension && global.boltowsExtensionId) {
+      try {
+        await defaultSession.removeExtension(global.boltowsExtensionId);
+        log.info(`[App] Dynamically removed Boltows extension: ${global.boltowsExtensionId}`);
+        global.boltowsExtensionId = null;
+      } catch (err) {
+        log.error('[App] Failed to dynamically remove Boltows extension:', err);
+      }
+    }
+  });
+
   registerBaseIpcHandlers({
     onSetTitle: setWindowTitle,
     onNewWindow: createMainWindow,
@@ -120,8 +215,24 @@ async function bootstrap() {
   registerSwarmPermissionsIpc();
   registerSwarmProviderIpc();
   registerFeedStoreIpc();
+  registerDSwarmIpc();
+  registerFreenetIpc();
   registerRequestRewriter(defaultSession);
   allowInteractivePermissions(defaultSession);
+
+  // Trading bot IPC handlers
+  ipcMain.handle('tradingbot:get-status', () => {
+    return tradingBot.getStatus();
+  });
+  ipcMain.handle('tradingbot:start', (event, config) => {
+    return tradingBot.start(config);
+  });
+  ipcMain.handle('tradingbot:stop', () => {
+    return tradingBot.stop();
+  });
+  ipcMain.handle('tradingbot:update-config', (event, config) => {
+    return tradingBot.updateConfig(config);
+  });
   registerWebContentsHandlers();
   setupApplicationMenu();
 
@@ -174,7 +285,8 @@ async function bootstrap() {
     startRadicle();
   }
 
-  const mainWindow = createMainWindow();
+  const initialUrl = getUrlFromArgs(process.argv);
+  const mainWindow = createMainWindow(initialUrl);
 
   // Initialize auto-updater (pass menu update callback)
   initUpdater(mainWindow, setupApplicationMenu);
@@ -245,8 +357,8 @@ app.on('before-quit', async (event) => {
   // Clean up any GitHub bridge temp directories
   cleanupTempDirs();
 
-  log.info('[App] Waiting for Bee, IPFS, and Radicle to stop...');
-  await Promise.all([stopBee(), stopIpfs(), stopRadicle()]);
+  log.info('[App] Waiting for Bee, IPFS, Radicle, DSwarm, and Freenet to stop...');
+  await Promise.all([stopBee(), stopIpfs(), stopRadicle(), getDSwarmManager().stop(), getFreenetManager().stop()]);
   log.info('[App] All processes stopped, quitting...');
 
 

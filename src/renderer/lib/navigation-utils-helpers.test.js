@@ -135,7 +135,7 @@ describe('navigation-utils extracted helpers', () => {
         bzzRoutePrefix: 'http://127.0.0.1:1633/bzz/',
         homeUrlNormalized: 'file:///app/pages/home.html',
       })
-    ).toBe('freedom://history');
+    ).toBe('Bolt://history');
 
     expect(
       mod.deriveSwitchedTabDisplay({

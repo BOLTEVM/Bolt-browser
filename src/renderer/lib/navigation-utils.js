@@ -24,7 +24,7 @@ export const resolveProtocolIconType = ({
     protocol = 'ipns';
   } else if (normalizedValue.startsWith('rad://') && enableRadicleIntegration) {
     protocol = 'radicle';
-  } else if (normalizedValue.startsWith('freedom://')) {
+  } else if (normalizedValue.startsWith('Bolt://')) {
     protocol = null;
   } else if (normalizedValue.startsWith('https://') || currentPageSecure) {
     protocol = 'https';
@@ -201,7 +201,7 @@ export const deriveSwitchedTabDisplay = ({
   const urlToDerive = url.startsWith('view-source:') ? url.slice(12) : url;
   const internalPageName = getInternalPageName(urlToDerive);
   if (internalPageName && internalPageName !== 'home') {
-    return `freedom://${internalPageName}`;
+    return `Bolt://${internalPageName}`;
   }
 
   let display = deriveDisplayAddress({

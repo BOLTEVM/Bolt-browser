@@ -206,7 +206,7 @@ function loadRadicleManagerModule(options = {}) {
   const ipcMain = options.ipcMain || createIpcMainMock();
   const app = options.app || createAppMock({
     isPackaged: options.isPackaged ?? false,
-    userDataDir: options.userDataDir || '/tmp/freedom-user-data',
+    userDataDir: options.userDataDir || '/tmp/Bolt-user-data',
   });
   const windows = options.windows || [];
   const BrowserWindow = {
@@ -637,7 +637,7 @@ describe('radicle-manager', () => {
 
     expect(ctx.execFileSync).toHaveBeenCalledWith(
       expect.stringContaining(`${path.sep}rad`),
-      ['auth', '--alias', 'FreedomBrowser'],
+      ['auth', '--alias', 'BoltBrowser'],
       expect.objectContaining({
         env: expect.objectContaining({
           RAD_HOME: DEV_RADICLE_DATA_DIR,
@@ -654,7 +654,7 @@ describe('radicle-manager', () => {
           'z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@rosa.radicle.xyz:8776',
         ],
         node: {
-          alias: 'FreedomBrowser',
+          alias: 'BoltBrowser',
         },
       }, null, 2)
     );

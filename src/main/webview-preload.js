@@ -2,7 +2,7 @@
  * Preload script for webviews
  *
  * This runs in the context of all webviews:
- * - Exposes freedomAPI for internal pages (freedom://history, etc.)
+ * - Exposes BoltAPI for internal pages (Bolt://history, etc.)
  * - Handles context menu for all pages
  */
 
@@ -27,8 +27,8 @@ const guardInternal =
   (...args) => {
     if (!isInternalPage()) {
       const url = globalThis.location?.href || 'unknown';
-      console.warn(`[freedomAPI] blocked "${name}" on non-internal page: ${url}`);
-      return Promise.reject(new Error('freedomAPI is only available on internal pages'));
+      console.warn(`[BoltAPI] blocked "${name}" on non-internal page: ${url}`);
+      return Promise.reject(new Error('BoltAPI is only available on internal pages'));
     }
     return fn(...args);
   };
@@ -52,7 +52,7 @@ if (typeof window !== 'undefined') {
 
 const guardInternalSubscription = (name, channel) => (callback) => {
   if (!isInternalPage()) {
-    console.warn(`[freedomAPI] blocked subscription "${name}" on non-internal page`);
+    console.warn(`[BoltAPI] blocked subscription "${name}" on non-internal page`);
     return () => {};
   }
   const handler = (_event, payload) => callback(payload);
@@ -66,7 +66,7 @@ const guardInternalSubscription = (name, channel) => (callback) => {
 };
 
 // Expose APIs to internal pages (guarded for safety)
-contextBridge.exposeInMainWorld('freedomAPI', {
+contextBridge.exposeInMainWorld('BoltAPI', {
   // History
   getHistory: guardInternal('getHistory', (options) => ipcRenderer.invoke('history:get', options)),
   addHistory: guardInternal('addHistory', (entry) => ipcRenderer.invoke('history:add', entry)),
@@ -322,7 +322,7 @@ class ProviderRpcError extends Error {
 const _ethereumProvider = {
   // MetaMask compatibility
   isMetaMask: true,
-  isFreedomBrowser: true,
+  isBoltBrowser: true,
 
   // State getters
   get chainId() {
@@ -498,168 +498,173 @@ ipcRenderer.on('dapp:provider-state', (_event, state) => {
   providerState = { ...providerState, ...state };
 });
 
-// Inject window.ethereum using contextBridge for security
-// Note: We need to use a proxy to make it work with dApps that check property existence
-try {
-  // For sites that check window.ethereum directly, we inject it into the page context
-  // This runs before page scripts via webview's preload
-  const script = document.createElement('script');
-  script.textContent = `
-    (function() {
-      // Placeholder that will be connected via postMessage
-      const pendingRequests = new Map();
-      let requestId = 0;
-      const eventListeners = {
-        connect: [],
-        disconnect: [],
-        chainChanged: [],
-        accountsChanged: [],
-        message: [],
-      };
-      let providerState = { chainId: null, accounts: [], isConnected: false };
+const webviewSettings = ipcRenderer.sendSync('settings:get-sync');
+const enableBoltowsExtension = webviewSettings?.enableBoltowsExtension === true;
 
-      function emitEvent(event, data) {
-        if (eventListeners[event]) {
-          eventListeners[event].forEach(h => { try { h(data); } catch(e) {} });
-        }
-      }
+if (!enableBoltowsExtension) {
+  // Inject window.ethereum using contextBridge for security
+  // Note: We need to use a proxy to make it work with dApps that check property existence
+  try {
+    // For sites that check window.ethereum directly, we inject it into the page context
+    // This runs before page scripts via webview's preload
+    const script = document.createElement('script');
+    script.textContent = `
+      (function() {
+        // Placeholder that will be connected via postMessage
+        const pendingRequests = new Map();
+        let requestId = 0;
+        const eventListeners = {
+          connect: [],
+          disconnect: [],
+          chainChanged: [],
+          accountsChanged: [],
+          message: [],
+        };
+        let providerState = { chainId: null, accounts: [], isConnected: false };
 
-      window.ethereum = {
-        isMetaMask: true,
-        isFreedomBrowser: true,
-        get chainId() { return providerState.chainId; },
-        get selectedAddress() { return providerState.accounts[0] || null; },
-        get networkVersion() { return providerState.chainId ? String(parseInt(providerState.chainId, 16)) : null; },
-        isConnected: () => providerState.isConnected,
-        request: async function({ method, params }) {
-          const id = ++requestId;
-          console.log('[ethereum] Request:', id, method, params);
-          return new Promise((resolve, reject) => {
-            pendingRequests.set(id, { resolve, reject });
-            console.log('[ethereum] Stored pending request:', id, 'total pending:', pendingRequests.size);
-            window.postMessage({ type: 'FREEDOM_ETHEREUM_REQUEST', id, method, params: params || [] }, '*');
-            setTimeout(() => {
-              if (pendingRequests.has(id)) {
-                pendingRequests.delete(id);
-                reject(new Error('Request timed out'));
-              }
-            }, method === 'eth_sendTransaction' ? 300000 : 60000);
-          });
-        },
-        on: function(event, handler) { if (eventListeners[event]) eventListeners[event].push(handler); return this; },
-        removeListener: function(event, handler) {
+        function emitEvent(event, data) {
           if (eventListeners[event]) {
-            const i = eventListeners[event].indexOf(handler);
-            if (i > -1) eventListeners[event].splice(i, 1);
+            eventListeners[event].forEach(h => { try { h(data); } catch(e) {} });
           }
-          return this;
-        },
-        addListener: function(event, handler) { return this.on(event, handler); },
-        removeAllListeners: function(event) { if (event && eventListeners[event]) eventListeners[event] = []; return this; },
-        enable: function() { return this.request({ method: 'eth_requestAccounts' }); },
-        send: function(methodOrPayload, paramsOrCallback) {
-          if (typeof methodOrPayload === 'string') return this.request({ method: methodOrPayload, params: paramsOrCallback });
-          if (typeof paramsOrCallback === 'function') { this.sendAsync(methodOrPayload, paramsOrCallback); return; }
-          return this.request({ method: methodOrPayload.method, params: methodOrPayload.params });
-        },
-        sendAsync: function(payload, callback) {
-          this.request({ method: payload.method, params: payload.params })
-            .then(result => callback(null, { id: payload.id, jsonrpc: '2.0', result }))
-            .catch(error => callback(error, null));
-        },
-      };
-
-      // Listen for responses
-      window.addEventListener('message', function(event) {
-        if (event.source !== window) return;
-        if (event.data.type === 'FREEDOM_ETHEREUM_RESPONSE') {
-          console.log('[ethereum] Received response:', event.data.id, event.data.result, event.data.error);
-          const pending = pendingRequests.get(event.data.id);
-          console.log('[ethereum] Pending request found:', !!pending, 'pendingRequests size:', pendingRequests.size);
-          if (pending) {
-            pendingRequests.delete(event.data.id);
-            if (event.data.error) {
-              const err = new Error(event.data.error.message);
-              err.code = event.data.error.code;
-              pending.reject(err);
-            } else {
-              console.log('[ethereum] Resolving with:', event.data.result);
-              pending.resolve(event.data.result);
-            }
-          }
-        } else if (event.data.type === 'FREEDOM_ETHEREUM_EVENT') {
-          if (event.data.event === 'chainChanged') providerState.chainId = event.data.data;
-          else if (event.data.event === 'accountsChanged') providerState.accounts = event.data.data || [];
-          else if (event.data.event === 'connect') { providerState.isConnected = true; providerState.chainId = event.data.data?.chainId; }
-          else if (event.data.event === 'disconnect') { providerState.isConnected = false; providerState.accounts = []; }
-          emitEvent(event.data.event, event.data.data);
-        } else if (event.data.type === 'FREEDOM_ETHEREUM_STATE') {
-          providerState = { ...providerState, ...event.data.state };
         }
+
+        window.ethereum = {
+          isMetaMask: true,
+          isBoltBrowser: true,
+          get chainId() { return providerState.chainId; },
+          get selectedAddress() { return providerState.accounts[0] || null; },
+          get networkVersion() { return providerState.chainId ? String(parseInt(providerState.chainId, 16)) : null; },
+          isConnected: () => providerState.isConnected,
+          request: async function({ method, params }) {
+            const id = ++requestId;
+            console.log('[ethereum] Request:', id, method, params);
+            return new Promise((resolve, reject) => {
+              pendingRequests.set(id, { resolve, reject });
+              console.log('[ethereum] Stored pending request:', id, 'total pending:', pendingRequests.size);
+              window.postMessage({ type: 'Bolt_ETHEREUM_REQUEST', id, method, params: params || [] }, '*');
+              setTimeout(() => {
+                if (pendingRequests.has(id)) {
+                  pendingRequests.delete(id);
+                  reject(new Error('Request timed out'));
+                }
+              }, method === 'eth_sendTransaction' ? 300000 : 60000);
+            });
+          },
+          on: function(event, handler) { if (eventListeners[event]) eventListeners[event].push(handler); return this; },
+          removeListener: function(event, handler) {
+            if (eventListeners[event]) {
+              const i = eventListeners[event].indexOf(handler);
+              if (i > -1) eventListeners[event].splice(i, 1);
+            }
+            return this;
+          },
+          addListener: function(event, handler) { return this.on(event, handler); },
+          removeAllListeners: function(event) { if (event && eventListeners[event]) eventListeners[event] = []; return this; },
+          enable: function() { return this.request({ method: 'eth_requestAccounts' }); },
+          send: function(methodOrPayload, paramsOrCallback) {
+            if (typeof methodOrPayload === 'string') return this.request({ method: methodOrPayload, params: paramsOrCallback });
+            if (typeof paramsOrCallback === 'function') { this.sendAsync(methodOrPayload, paramsOrCallback); return; }
+            return this.request({ method: methodOrPayload.method, params: methodOrPayload.params });
+          },
+          sendAsync: function(payload, callback) {
+            this.request({ method: payload.method, params: payload.params })
+              .then(result => callback(null, { id: payload.id, jsonrpc: '2.0', result }))
+              .catch(error => callback(error, null));
+          },
+        };
+
+        // Listen for responses
+        window.addEventListener('message', function(event) {
+          if (event.source !== window) return;
+          if (event.data.type === 'Bolt_ETHEREUM_RESPONSE') {
+            console.log('[ethereum] Received response:', event.data.id, event.data.result, event.data.error);
+            const pending = pendingRequests.get(event.data.id);
+            console.log('[ethereum] Pending request found:', !!pending, 'pendingRequests size:', pendingRequests.size);
+            if (pending) {
+              pendingRequests.delete(event.data.id);
+              if (event.data.error) {
+                const err = new Error(event.data.error.message);
+                err.code = event.data.error.code;
+                pending.reject(err);
+              } else {
+                console.log('[ethereum] Resolving with:', event.data.result);
+                pending.resolve(event.data.result);
+              }
+            }
+          } else if (event.data.type === 'Bolt_ETHEREUM_EVENT') {
+            if (event.data.event === 'chainChanged') providerState.chainId = event.data.data;
+            else if (event.data.event === 'accountsChanged') providerState.accounts = event.data.data || [];
+            else if (event.data.event === 'connect') { providerState.isConnected = true; providerState.chainId = event.data.data?.chainId; }
+            else if (event.data.event === 'disconnect') { providerState.isConnected = false; providerState.accounts = []; }
+            emitEvent(event.data.event, event.data.data);
+          } else if (event.data.type === 'Bolt_ETHEREUM_STATE') {
+            providerState = { ...providerState, ...event.data.state };
+          }
+        });
+
+        // Announce provider (EIP-6963)
+        window.dispatchEvent(new Event('ethereum#initialized'));
+      })();
+    `;
+
+    // Inject before any page scripts run
+    const inject = () => {
+      const head = document.head || document.documentElement;
+      head.insertBefore(script, head.firstChild);
+      script.remove();
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', inject, { once: true });
+    } else {
+      inject();
+    }
+  } catch (err) {
+    console.error('[webview-preload] Failed to inject ethereum provider:', err);
+  }
+
+  // Bridge postMessage from page to IPC
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    if (event.data.type === 'Bolt_ETHEREUM_REQUEST') {
+      const { id, method, params } = event.data;
+      const origin = window.location.origin;
+
+      ipcRenderer.sendToHost('dapp:provider-request', {
+        id,
+        method,
+        params,
+        origin,
       });
+    }
+  });
 
-      // Announce provider (EIP-6963)
-      window.dispatchEvent(new Event('ethereum#initialized'));
-    })();
-  `;
-
-  // Inject before any page scripts run
-  const inject = () => {
-    const head = document.head || document.documentElement;
-    head.insertBefore(script, head.firstChild);
-    script.remove();
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inject, { once: true });
-  } else {
-    inject();
-  }
-} catch (err) {
-  console.error('[webview-preload] Failed to inject ethereum provider:', err);
-}
-
-// Bridge postMessage from page to IPC
-window.addEventListener('message', (event) => {
-  if (event.source !== window) return;
-  if (event.data.type === 'FREEDOM_ETHEREUM_REQUEST') {
-    const { id, method, params } = event.data;
-    const origin = window.location.origin;
-
-    ipcRenderer.sendToHost('dapp:provider-request', {
+  // Bridge IPC responses back to page
+  ipcRenderer.on('dapp:provider-response', (_event, { id, result, error }) => {
+    console.log('[webview-preload] Received provider response:', { id, result, error });
+    window.postMessage({
+      type: 'Bolt_ETHEREUM_RESPONSE',
       id,
-      method,
-      params,
-      origin,
-    });
-  }
-});
+      result,
+      error,
+    }, window.location.origin);
+  });
 
-// Bridge IPC responses back to page
-ipcRenderer.on('dapp:provider-response', (_event, { id, result, error }) => {
-  console.log('[webview-preload] Received provider response:', { id, result, error });
-  window.postMessage({
-    type: 'FREEDOM_ETHEREUM_RESPONSE',
-    id,
-    result,
-    error,
-  }, window.location.origin);
-});
+  ipcRenderer.on('dapp:provider-event', (_event, { event, data }) => {
+    window.postMessage({
+      type: 'Bolt_ETHEREUM_EVENT',
+      event,
+      data,
+    }, window.location.origin);
+  });
 
-ipcRenderer.on('dapp:provider-event', (_event, { event, data }) => {
-  window.postMessage({
-    type: 'FREEDOM_ETHEREUM_EVENT',
-    event,
-    data,
-  }, window.location.origin);
-});
-
-ipcRenderer.on('dapp:provider-state', (_event, state) => {
-  window.postMessage({
-    type: 'FREEDOM_ETHEREUM_STATE',
-    state,
-  }, window.location.origin);
-});
+  ipcRenderer.on('dapp:provider-state', (_event, state) => {
+    window.postMessage({
+      type: 'Bolt_ETHEREUM_STATE',
+      state,
+    }, window.location.origin);
+  });
+}
 
 // ============================================
 // Swarm Provider (window.swarm)
@@ -680,14 +685,14 @@ try {
       }
 
       window.swarm = {
-        isFreedomBrowser: true,
+        isBoltBrowser: true,
 
         async request({ method, params }) {
           if (!method) throw new Error('method is required');
           const id = ++requestId;
           return new Promise((resolve, reject) => {
             pendingRequests.set(id, { resolve, reject });
-            window.postMessage({ type: 'FREEDOM_SWARM_REQUEST', id, method, params: params || {} }, '*');
+            window.postMessage({ type: 'Bolt_SWARM_REQUEST', id, method, params: params || {} }, '*');
             const timeout = (method.startsWith('swarm_publish') || method === 'swarm_writeFeedEntry' || method === 'swarm_updateFeed') ? 300000 : 60000;
             setTimeout(() => {
               if (pendingRequests.has(id)) {
@@ -723,7 +728,7 @@ try {
 
       window.addEventListener('message', function(event) {
         if (event.source !== window) return;
-        if (event.data.type === 'FREEDOM_SWARM_RESPONSE') {
+        if (event.data.type === 'Bolt_SWARM_RESPONSE') {
           const pending = pendingRequests.get(event.data.id);
           if (pending) {
             pendingRequests.delete(event.data.id);
@@ -736,7 +741,7 @@ try {
               pending.resolve(event.data.result);
             }
           }
-        } else if (event.data.type === 'FREEDOM_SWARM_EVENT') {
+        } else if (event.data.type === 'Bolt_SWARM_EVENT') {
           emitEvent(event.data.event, event.data.data);
         }
       });
@@ -761,7 +766,7 @@ try {
 // Bridge postMessage from page to IPC (Swarm)
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
-  if (event.data.type === 'FREEDOM_SWARM_REQUEST') {
+  if (event.data.type === 'Bolt_SWARM_REQUEST') {
     const { id, method, params } = event.data;
     ipcRenderer.sendToHost('swarm:provider-request', { id, method, params });
   }
@@ -770,7 +775,7 @@ window.addEventListener('message', (event) => {
 // Bridge IPC responses back to page (Swarm)
 ipcRenderer.on('swarm:provider-response', (_event, { id, result, error }) => {
   window.postMessage({
-    type: 'FREEDOM_SWARM_RESPONSE',
+    type: 'Bolt_SWARM_RESPONSE',
     id,
     result,
     error,
@@ -778,11 +783,33 @@ ipcRenderer.on('swarm:provider-response', (_event, { id, result, error }) => {
 });
 
 ipcRenderer.on('swarm:provider-event', (_event, { event, data }) => {
-  window.postMessage({
-    type: 'FREEDOM_SWARM_EVENT',
-    event,
-    data,
-  }, window.location.origin);
-});
+// Expose DSwarm and DWeb APIs to dApps
+try {
+  contextBridge.exposeInMainWorld('dswarm', {
+    joinTopic: (topic, options) => ipcRenderer.invoke('dswarm:joinTopic', { topic, options }),
+    leaveTopic: (topic) => ipcRenderer.invoke('dswarm:leaveTopic', { topic }),
+    broadcast: (topic, data) => ipcRenderer.invoke('dswarm:broadcast', { topic, data }),
+    getStatus: () => ipcRenderer.invoke('dswarm:getStatus'),
+    onMessage: (callback) => {
+      const handler = (_event, message) => callback(message);
+      ipcRenderer.on('dswarm:message', handler);
+      return () => ipcRenderer.removeListener('dswarm:message', handler);
+    },
+  });
 
-console.log('[webview-preload] Loaded (freedomAPI + context menu + ethereum + swarm provider)');
+  contextBridge.exposeInMainWorld('dweb', {
+    readFile: (key, path, options) => ipcRenderer.invoke('dweb:readFile', { key, path, options }),
+    getDriveInfo: (key) => ipcRenderer.invoke('dweb:getDriveInfo', { key }),
+  });
+
+  contextBridge.exposeInMainWorld('freenet', {
+    gatewayUrl: 'http://127.0.0.1:50509',
+    wsUrl: 'ws://127.0.0.1:50509/ws',
+    getStatus: () => ipcRenderer.invoke('freenet:getStatus'),
+  });
+} catch (err) {
+  console.error('[webview-preload] Failed to expose dswarm/dweb/freenet APIs:', err);
+}
+
+console.log('[webview-preload] Loaded (BoltAPI + context menu + ethereum + swarm + dswarm + freenet provider)');
+

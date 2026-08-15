@@ -10,7 +10,7 @@ async function fetchLatestRelease() {
     const options = {
       hostname: 'api.github.com',
       path: '/repos/ethersphere/bee/releases/latest',
-      headers: { 'User-Agent': 'Freedom-Updater' },
+      headers: { 'User-Agent': 'Bolt-Updater' },
     };
 
     https
@@ -34,7 +34,7 @@ async function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
     https
-      .get(url, { headers: { 'User-Agent': 'Freedom-Updater' } }, (response) => {
+      .get(url, { headers: { 'User-Agent': 'Bolt-Updater' } }, (response) => {
         if (response.statusCode === 302 || response.statusCode === 301) {
           downloadFile(response.headers.location, dest).then(resolve).catch(reject);
           return;
@@ -97,7 +97,11 @@ async function main() {
         fs.unlinkSync(tempDest);
       } else if (asset.name.endsWith('.zip')) {
         console.log(`Extracting ${asset.name}...`);
-        execSync(`unzip -o "${tempDest}" -d "${targetDir}"`);
+        if (process.platform === 'win32') {
+          execSync(`tar -xf "${tempDest}" -C "${targetDir}"`);
+        } else {
+          execSync(`unzip -o "${tempDest}" -d "${targetDir}"`);
+        }
         fs.unlinkSync(tempDest);
       } else {
         fs.renameSync(tempDest, destFile);

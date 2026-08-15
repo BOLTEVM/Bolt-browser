@@ -95,14 +95,14 @@ describe('history', () => {
       protocol: 'https',
     });
     mod.addHistoryEntry({
-      url: 'https://freedom.browser',
-      title: 'Freedom',
+      url: 'https://Bolt.browser',
+      title: 'Bolt',
       protocol: 'https',
     });
 
-    const searchResults = mod.searchHistory('Freedom');
+    const searchResults = mod.searchHistory('Bolt');
     expect(searchResults).toHaveLength(1);
-    expect(searchResults[0].url).toBe('https://freedom.browser');
+    expect(searchResults[0].url).toBe('https://Bolt.browser');
 
     expect(mod.removeHistoryEntry(searchResults[0].id)).toBe(true);
     expect(mod.getHistoryCount()).toBe(1);

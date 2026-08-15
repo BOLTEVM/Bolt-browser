@@ -127,7 +127,7 @@ describe('swarm-readiness', () => {
     });
 
     expect(result.key).toBe('browsing-only');
-    expect(result.detail).toContain('Managed outside Freedom.');
+    expect(result.detail).toContain('Managed outside Bolt.');
     expect(result.action).toBeNull();
   });
 

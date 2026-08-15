@@ -10,8 +10,13 @@ const OUTPUT_DIR = path.join(__dirname, '..', 'radicle-bin');
 const MAIN_RELEASES_URL = 'https://files.radicle.xyz/releases/latest';
 const HTTPD_RELEASES_URL = 'https://files.radicle.xyz/releases/radicle-httpd/latest';
 
-// Freedom platform naming (matching bee/ipfs) -> Radicle target triple
-// Radicle does not publish Windows builds.
+// Target mapping: Bolt platform naming to Radicle target triple
+// Bolt uses mac-arm64/mac-x64/linux-arm64/linux-x64 (matching bee/ipfs)
+const PLATFORM_MAP = {
+  darwin: 'mac',
+  linux: 'linux',
+};
+
 const TARGETS = {
   'mac-arm64': 'aarch64-apple-darwin',
   'mac-x64': 'x86_64-apple-darwin',
@@ -163,6 +168,7 @@ async function installTarget(targetKey, radicleTarget, mainVersion, httpdVersion
 
 async function main() {
   try {
+<<<<<<< HEAD
     // Determine which targets to fetch. By default, fetch all; allow overriding
     // via RADICLE_TARGET=mac-arm64 (or a comma-separated list) for host-only builds
     // used by Docker dist jobs.
@@ -170,6 +176,15 @@ async function main() {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+=======
+    if (process.platform === 'win32') {
+      console.log('Radicle is not supported on Windows. Skipping download.');
+      process.exit(0);
+    }
+    const platform = PLATFORM_MAP[process.platform] || process.platform;
+    const arch = process.arch;
+    const targetKey = `${platform}-${arch}`;
+>>>>>>> 640893a (feat: integrate DSwarm, DWeb, Freenet, and locallitcoins capabilities)
 
     const targetKeys =
       requested.length > 0 ? requested : Object.keys(TARGETS);

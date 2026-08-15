@@ -186,4 +186,31 @@ module.exports = {
   SWARM_HAS_FEED_GRANT: 'swarm:has-feed-grant',
   SWARM_GET_IDENTITY_MODE: 'swarm:get-identity-mode',
   SWARM_REVOKE_FEED_ACCESS: 'swarm:revoke-feed-access',
+
+  // DSwarm Node Management
+  DSWARM_START: 'dswarm:start',
+  DSWARM_STOP: 'dswarm:stop',
+  DSWARM_GET_STATUS: 'dswarm:getStatus',
+  DSWARM_STATUS_UPDATE: 'dswarm:statusUpdate',
+  DSWARM_JOIN_TOPIC: 'dswarm:joinTopic',
+  DSWARM_LEAVE_TOPIC: 'dswarm:leaveTopic',
+  DSWARM_BROADCAST: 'dswarm:broadcast',
+  DSWARM_MESSAGE: 'dswarm:message',
+
+  // DWeb Hyperdrive & Storage
+  DWEB_GET_DRIVE_INFO: 'dweb:getDriveInfo',
+  DWEB_READ_FILE: 'dweb:readFile',
+  DWEB_WRITE_FILE: 'dweb:writeFile',
+  DWEB_SET_BASE: 'dweb:set-base',
+  DWEB_CLEAR_BASE: 'dweb:clear-base',
+
+  // Freenet Node Management
+  FREENET_START: 'freenet:start',
+  FREENET_STOP: 'freenet:stop',
+  FREENET_GET_STATUS: 'freenet:getStatus',
+  FREENET_STATUS_UPDATE: 'freenet:statusUpdate',
+  FREENET_SET_BASE: 'freenet:set-base',
+  FREENET_CLEAR_BASE: 'freenet:clear-base',
 };
+
+

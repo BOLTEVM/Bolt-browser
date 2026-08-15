@@ -529,7 +529,7 @@ function getIpfsBinaryPath() {
  * @param {string} alias - Node alias
  * @returns {Promise<{did: string}>}
  */
-async function injectRadicleIdentity(alias = 'FreedomBrowser') {
+async function injectRadicleIdentity(alias = 'BoltBrowser') {
   if (!derivedKeys) {
     throw new Error('Vault is locked');
   }
@@ -572,7 +572,7 @@ async function injectRadicleIdentity(alias = 'FreedomBrowser') {
  * @param {boolean} force - Force overwrite even if keys exist
  * @returns {Promise<Object>}
  */
-async function injectAllIdentities(radicleAlias = 'FreedomBrowser', force = false) {
+async function injectAllIdentities(radicleAlias = 'BoltBrowser', force = false) {
   if (!derivedKeys) {
     throw new Error('Vault is locked');
   }
@@ -665,7 +665,7 @@ async function getIdentityStatus() {
     const radicleIdentity = identity.createRadicleIdentity(
       derivedKeys.radicleKey.privateKey,
       derivedKeys.radicleKey.publicKey,
-      'FreedomBrowser'
+      'BoltBrowser'
     );
 
     addresses = {

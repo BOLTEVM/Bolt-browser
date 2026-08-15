@@ -25,7 +25,7 @@ autoUpdater.autoDownload = true; // Download automatically in background
 autoUpdater.autoInstallOnAppQuit = false; // Only install when user clicks "Install now"
 
 // Set custom User-Agent header
-const userAgent = `Freedom/${app.getVersion()} (${process.platform}; ${process.arch}) Electron/${process.versions.electron} updater`;
+const userAgent = `Bolt/${app.getVersion()} (${process.platform}; ${process.arch}) Electron/${process.versions.electron} updater`;
 autoUpdater.requestHeaders = { 'User-Agent': userAgent };
 log.info('[updater] User-Agent:', userAgent);
 
@@ -103,7 +103,7 @@ autoUpdater.on('update-not-available', () => {
   if (isManualCheck && mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('show-update-notification', {
       type: 'up-to-date',
-      message: 'Freedom is up to date',
+      message: 'Bolt is up to date',
     });
   }
   isManualCheck = false;

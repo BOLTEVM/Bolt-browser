@@ -3,7 +3,7 @@
  *
  * Manages user-configured RPC provider API keys and builds RPC URLs.
  * Providers are defined in src/shared/rpc-providers.json.
- * User API keys are stored in ~/.freedom-browser/rpc-api-keys.json.
+ * User API keys are stored in ~/.Bolt-browser/rpc-api-keys.json.
  */
 
 const { app, ipcMain } = require('electron');

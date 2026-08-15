@@ -282,7 +282,7 @@ async function performQuickSetup() {
     const status = await window.identity.getStatus();
     const nodesHaveIdentities = status.beeInjected || status.ipfsInjected || status.radicleInjected;
 
-    const injectResult = await window.identity.injectAll('FreedomBrowser', nodesHaveIdentities);
+    const injectResult = await window.identity.injectAll('BoltBrowser', nodesHaveIdentities);
     if (!injectResult.success) {
       hideLoading();
       alert('Failed to set up identity: ' + injectResult.error);
@@ -761,7 +761,7 @@ async function finishOnboarding() {
     const status = await window.identity.getStatus();
     const nodesHaveIdentities = status.beeInjected || status.ipfsInjected || status.radicleInjected;
 
-    const result = await window.identity.injectAll('FreedomBrowser', nodesHaveIdentities);
+    const result = await window.identity.injectAll('BoltBrowser', nodesHaveIdentities);
 
     if (result.success) {
       // Restart nodes that were reinjected

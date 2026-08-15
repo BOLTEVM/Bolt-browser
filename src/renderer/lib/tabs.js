@@ -33,7 +33,7 @@ export const updateTabFavicon = async (tabId, pageUrl) => {
   if (!tab) return;
 
   // Skip for internal pages or empty URLs
-  if (!pageUrl || pageUrl.startsWith('freedom://') || pageUrl.includes('/pages/')) {
+  if (!pageUrl || pageUrl.startsWith('Bolt://') || pageUrl.includes('/pages/')) {
     tab.favicon = null;
     renderTabs();
     return;
@@ -230,7 +230,7 @@ const createWebview = (tabId, initialUrl) => {
     'contextIsolation=yes,sandbox=yes,nodeIntegration=no,webSecurity=yes,enableRemoteModule=no'
   );
 
-  // Always set preload for API access (internal pages use freedomAPI)
+  // Always set preload for API access (internal pages use BoltAPI)
   if (webviewPreloadPath) {
     webview.setAttribute('preload', `file://${webviewPreloadPath}`);
   }

@@ -52,6 +52,28 @@ export const isValidRadicleId = (str) => {
   return false;
 };
 
+// Check if a string looks like a valid DWeb / Hypercore key (64 hex chars or 52 z-base32 chars)
+export const isValidDWebKey = (str) => {
+  if (!str || typeof str !== 'string') return false;
+  if (/^[a-fA-F0-9]{64}$/.test(str)) return true;
+  if (/^[a-z0-9]{52}$/i.test(str)) return true;
+  return false;
+};
+
+// Check if a string looks like a valid DSwarm topic
+export const isValidDSwarmTopic = (str) => {
+  if (!str || typeof str !== 'string') return false;
+  return /^[a-zA-Z0-9._-]{1,64}$/.test(str);
+};
+
+// Check if a string looks like a valid Freenet contract key or alias
+export const isValidFreenetKey = (str) => {
+  if (!str || typeof str !== 'string') return false;
+  return /^[a-zA-Z0-9_-]{3,64}$/.test(str);
+};
+
+
+
 // Check if a string looks like a domain name (not a Swarm hash)
 const looksLikeDomain = (str) => {
   // Must contain at least one dot
@@ -707,3 +729,91 @@ export const deriveRadicleDisplayValue = (url, radicleApiPrefix) => {
 
   return url;
 };
+
+/**
+ * Parse DWeb / Hypercore input (e.g. dweb://<key>/index.html or hyper://<key>)
+ */
+export const parseDWebInput = (rawInput) => {
+  if (!rawInput || typeof rawInput !== 'string') return null;
+  const raw = rawInput.trim();
+
+  if (raw.toLowerCase().startsWith('dweb://') || raw.toLowerCase().startsWith('hyper://')) {
+    const scheme = raw.toLowerCase().startsWith('dweb://') ? 'dweb://' : 'hyper://';
+    const withoutScheme = raw.slice(scheme.length).replace(/^\/+/, '');
+    if (!withoutScheme) return null;
+
+    const slashIndex = withoutScheme.indexOf('/');
+    const key = slashIndex === -1 ? withoutScheme : withoutScheme.slice(0, slashIndex);
+    const path = slashIndex === -1 ? '/' : withoutScheme.slice(slashIndex);
+
+    if (!isValidDWebKey(key)) return null;
+
+    return {
+      targetUrl: `dweb://${key}${path}`,
+      displayValue: `dweb://${key}${path}`,
+      protocol: 'dweb',
+    };
+  }
+
+  return null;
+};
+
+/**
+ * Parse DSwarm input (e.g. dswarm://<topic>)
+ */
+export const parseDSwarmInput = (rawInput) => {
+  if (!rawInput || typeof rawInput !== 'string') return null;
+  const raw = rawInput.trim();
+
+  if (raw.toLowerCase().startsWith('dswarm://')) {
+    const withoutScheme = raw.slice(9).replace(/^\/+/, '');
+    if (!withoutScheme) return null;
+
+    const topic = withoutScheme.split(/[/?#]/)[0];
+    if (!isValidDSwarmTopic(topic)) return null;
+
+    return {
+      targetUrl: `dswarm://${withoutScheme}`,
+      displayValue: `dswarm://${withoutScheme}`,
+      protocol: 'dswarm',
+    };
+  }
+
+  return null;
+};
+
+/**
+ * Parse Freenet input (e.g. freenet://locallitcoins or freenet://<contract-key>/path)
+ */
+export const parseFreenetInput = (rawInput) => {
+  if (!rawInput || typeof rawInput !== 'string') return null;
+  const raw = rawInput.trim();
+
+  if (raw.toLowerCase().startsWith('freenet://')) {
+    const withoutScheme = raw.slice(10).replace(/^\/+/, '');
+    if (!withoutScheme) return null;
+
+    if (withoutScheme === 'locallitcoins' || withoutScheme.startsWith('locallitcoins/')) {
+      return {
+        targetUrl: 'http://127.0.0.1:3000/',
+        displayValue: `freenet://${withoutScheme}`,
+        protocol: 'freenet',
+      };
+    }
+
+    const key = withoutScheme.split(/[/?#]/)[0];
+    const path = withoutScheme.slice(key.length);
+
+    if (!isValidFreenetKey(key)) return null;
+
+    return {
+      targetUrl: `http://127.0.0.1:50509/contract/web/${key}${path || '/'}`,
+      displayValue: `freenet://${key}${path || '/'}`,
+      protocol: 'freenet',
+    };
+  }
+
+  return null;
+};
+
+

@@ -50,8 +50,8 @@ const PREFERRED_SEEDS = [
   'z6Mkmqogy2qEM2ummccUthFEaaHvyYmYBYh3dbe9W4ebScxo@rosa.radicle.xyz:8776',
 ];
 
-// Canonical Freedom Browser repo — bundled nodes auto-seed this
-const FREEDOM_BROWSER_RID = 'rad:z3QXuMvMmSeEX3ZgoUidZC1v5MkKE';
+// Canonical Bolt Browser repo — bundled nodes auto-seed this
+const Bolt_BROWSER_RID = 'rad:z3QXuMvMmSeEX3ZgoUidZC1v5MkKE';
 
 // States
 const STATUS = {
@@ -169,7 +169,7 @@ function ensureConfig(radHome) {
 
   config.preferredSeeds = PREFERRED_SEEDS;
   config.node = config.node || {};
-  config.node.alias = config.node.alias || 'FreedomBrowser';
+  config.node.alias = config.node.alias || 'BoltBrowser';
 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
   log.info('[Radicle] Config updated with preferredSeeds');
@@ -205,7 +205,7 @@ function ensureIdentity(radHome) {
     log.info('[Radicle] Creating identity with rad auth...');
     // Use empty passphrase for non-interactive creation
     // Note: alias cannot contain spaces or control characters
-    execFileSync(radPath, ['auth', '--alias', 'FreedomBrowser'], {
+    execFileSync(radPath, ['auth', '--alias', 'BoltBrowser'], {
       env: {
         ...process.env,
         RAD_HOME: radHome,
@@ -436,7 +436,7 @@ async function autoSeedDefaults() {
   const dataDir = getActiveRadHome();
 
   try {
-    await execFileAsync(radBinPath, ['seed', FREEDOM_BROWSER_RID], {
+    await execFileAsync(radBinPath, ['seed', Bolt_BROWSER_RID], {
       env: {
         ...process.env,
         RAD_HOME: dataDir,
@@ -444,14 +444,14 @@ async function autoSeedDefaults() {
       },
       timeout: 120000,
     });
-    log.info(`[Radicle] Auto-seeded ${FREEDOM_BROWSER_RID}`);
+    log.info(`[Radicle] Auto-seeded ${Bolt_BROWSER_RID}`);
   } catch (err) {
     // "already tracking" is expected on subsequent starts
     const stderr = err.stderr?.toString() || '';
     if (stderr.includes('already tracking')) {
-      log.info(`[Radicle] Already seeding ${FREEDOM_BROWSER_RID}`);
+      log.info(`[Radicle] Already seeding ${Bolt_BROWSER_RID}`);
     } else {
-      log.warn(`[Radicle] Auto-seed failed for ${FREEDOM_BROWSER_RID}:`, err.message);
+      log.warn(`[Radicle] Auto-seed failed for ${Bolt_BROWSER_RID}:`, err.message);
     }
   }
 }

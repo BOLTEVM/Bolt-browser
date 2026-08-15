@@ -220,7 +220,7 @@ describe('bee-ui', () => {
     ctx.mod.updateBeeToggleState();
     expect(ctx.elements.beeToggleBtn.classList.contains('external')).toBe(true);
     expect(ctx.elements.beeToggleBtn.getAttribute('title')).toBe(
-      'Using existing node — cannot be controlled from Freedom'
+      'Using existing node — cannot be controlled from Bolt'
     );
 
     ctx.state.registry.bee.mode = 'none';

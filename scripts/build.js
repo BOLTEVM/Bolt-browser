@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Unified build/dist script for Freedom Browser.
+ * Unified build/dist script for Bolt Browser.
  *
  * Replaces 30+ individual npm scripts with a single parameterized helper.
  *

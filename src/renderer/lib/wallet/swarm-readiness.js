@@ -27,7 +27,7 @@ function appendInspectOnlyNote(detail, registryMode) {
     return detail;
   }
 
-  return `${detail} Managed outside Freedom.`;
+  return `${detail} Managed outside Bolt.`;
 }
 
 export function getUsableStampCount(stamps = []) {

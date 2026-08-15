@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = {
   theme: 'system',
   enableRadicleIntegration: false,
   enableIdentityWallet: false,
+  enableBoltowsExtension: true,
   beeNodeMode: 'ultraLight',
   startBeeAtLaunch: true,
   startIpfsAtLaunch: true,
@@ -106,6 +107,7 @@ function saveSettings(newSettings) {
     }
 
     broadcastSettingsUpdated(merged);
+    app.emit('settings-updated', merged);
 
     return true;
   } catch (err) {
@@ -121,6 +123,10 @@ function registerSettingsIpc() {
 
   ipcMain.handle(IPC.SETTINGS_SAVE, (_event, newSettings) => {
     return saveSettings(newSettings);
+  });
+
+  ipcMain.on('settings:get-sync', (event) => {
+    event.returnValue = loadSettings();
   });
 }
 

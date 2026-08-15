@@ -10,7 +10,7 @@ export const homeUrl = new URL('pages/home.html', window.location.href).toString
 export const homeUrlNormalized = homeUrl;
 export const errorUrlBase = new URL('pages/error.html', window.location.href).toString();
 
-// Internal pages map for freedom:// protocol
+// Internal pages map for Bolt:// protocol
 export const internalPages = Object.fromEntries(
   Object.entries(ROUTABLE_PAGES).map(([name, file]) => [
     name,
@@ -26,6 +26,10 @@ export const detectProtocol = (url) => {
   if (url.startsWith('ipfs://')) return 'ipfs';
   if (url.startsWith('ipns://')) return 'ipns';
   if (url.startsWith('rad:')) return 'radicle';
+  if (url.startsWith('dweb://')) return 'dweb';
+  if (url.startsWith('hyper://')) return 'dweb';
+  if (url.startsWith('dswarm://')) return 'dswarm';
+  if (url.startsWith('freenet://')) return 'freenet';
   if (url.startsWith('https://')) return 'https';
   if (url.startsWith('http://')) return 'http';
   return 'unknown';
@@ -34,14 +38,14 @@ export const detectProtocol = (url) => {
 // Check if URL should be recorded in history
 export const isHistoryRecordable = (displayUrl, internalUrl) => {
   if (!displayUrl || displayUrl === '') return false;
-  if (displayUrl.startsWith('freedom://')) return false;
+  if (displayUrl.startsWith('Bolt://')) return false;
   if (displayUrl.startsWith('view-source:')) return false;
   if (internalUrl?.includes('/error.html')) return false;
   if (internalUrl === homeUrl || internalUrl === homeUrlNormalized) return false;
   return true;
 };
 
-// Convert internal page URL back to freedom:// format
+// Convert internal page URL back to Bolt:// format
 export const getInternalPageName = (url) => {
   for (const [name, pageUrl] of Object.entries(internalPages)) {
     if (url === pageUrl || url === pageUrl.replace(/\/$/, '')) {

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>DSwarm & DWeb Diagnostics | Bolt Browser</title>
+    <link rel="stylesheet" href="styles/settings.css" />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: #0f1117;
+        color: #e6edf3;
+        margin: 0;
+        padding: 32px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #30363d;
+        padding-bottom: 20px;
+        margin-bottom: 24px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        background: rgba(46, 160, 67, 0.15);
+        color: #3fb950;
+        border: 1px solid rgba(46, 160, 67, 0.4);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .card-label {
+        font-size: 12px;
+        color: #8b949e;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .card-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #58a6ff;
+        font-family: monospace;
+      }
+      .btn {
+        background: #238636;
+        color: #ffffff;
+        border: 1px solid rgba(240, 246, 252, 0.1);
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: #2ea043;
+      }
+      .btn-secondary {
+        background: #21262d;
+        color: #c9d1d9;
+        border-color: #30363d;
+      }
+      .btn-secondary:hover {
+        background: #30363d;
+      }
+      .topic-input {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 8px 12px;
+        border-radius: 6px;
+        width: 100%;
+        box-sizing: border-box;
+        font-family: monospace;
+        margin-bottom: 12px;
+      }
+      .log-box {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 12px;
+        height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 12px;
+        color: #7ee787;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1 style="margin: 0 0 6px 0;">⚡ DSwarm & DWeb Node Diagnostics</h1>
+          <div style="color: #8b949e; font-size: 13px;">Hyperswarm DHT, asynchronous P2P stream multiplexing & Hypercore corestore.</div>
+        </div>
+        <div id="status-badge" class="badge">● DSwarm Running</div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-label">DHT Nodes Connected</div>
+          <div class="card-value" id="dht-nodes">128</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Connected Swarm Peers</div>
+          <div class="card-value" id="total-peers">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Active Topics</div>
+          <div class="card-value" id="active-topics">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">NAT Traversal Type</div>
+          <div class="card-value" id="nat-type" style="font-size: 18px; color: #7ee787;">Full Cone</div>
+        </div>
+      </div>
+
+      <!-- Public Key & Local Identity -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-label">DSwarm Node Public Key (Ed25519)</div>
+        <div style="font-family: monospace; font-size: 13px; color: #58a6ff; word-break: break-all;" id="public-key">
+          Loading public key...
+        </div>
+      </div>
+
+      <!-- Topic Inspector -->
+      <div class="card" style="margin-bottom: 24px;">
+        <h3 style="margin-top: 0;">🌐 Join P2P Swarm Topic</h3>
+        <input type="text" id="topic-input" class="topic-input" placeholder="e.g. general-chat or 64-character hex topic hash" />
+        <div style="display: flex; gap: 10px;">
+          <button id="join-btn" class="btn">Join Topic</button>
+          <button id="broadcast-btn" class="btn btn-secondary">Broadcast Ping</button>
+        </div>
+      </div>
+
+      <!-- Live Stream Log -->
+      <div class="card">
+        <h3 style="margin-top: 0;">📡 Live P2P Swarm Stream Log</h3>
+        <div class="log-box" id="stream-log">
+          [dswarm] Connected to Hyperswarm Kademlia DHT bootstrap network.<br/>
+          [dswarm] Ready for asynchronous topic joins and dweb streaming.
+        </div>
+      </div>
+    </div>
+
+    <script src="../lib/dswarm-ui.js"></script>
+  </body>
+</html>

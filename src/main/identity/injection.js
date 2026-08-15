@@ -71,9 +71,9 @@ function injectIpfsKey(ipfsPath, privateKey, publicKey) {
  * @param {string} radHome - Radicle home directory
  * @param {Uint8Array} privateKey - 32-byte Ed25519 private key
  * @param {Uint8Array} publicKey - 32-byte Ed25519 public key
- * @param {string} alias - Node alias (e.g., "FreedomBrowser")
+ * @param {string} alias - Node alias (e.g., "BoltBrowser")
  */
-function injectRadicleKey(radHome, privateKey, publicKey, alias = 'FreedomBrowser') {
+function injectRadicleKey(radHome, privateKey, publicKey, alias = 'BoltBrowser') {
   const keysDir = path.join(radHome, 'keys');
 
   // Create keys directory if it doesn't exist

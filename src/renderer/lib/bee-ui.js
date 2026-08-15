@@ -223,7 +223,7 @@ export const updateBeeToggleState = () => {
 
   if (isReused) {
     beeToggleBtn.classList.add('external');
-    beeToggleBtn.setAttribute('title', 'Using existing node — cannot be controlled from Freedom');
+    beeToggleBtn.setAttribute('title', 'Using existing node — cannot be controlled from Bolt');
   } else if (beeBinaryAvailable) {
     beeToggleBtn.classList.remove('external');
     beeToggleBtn.removeAttribute('title');

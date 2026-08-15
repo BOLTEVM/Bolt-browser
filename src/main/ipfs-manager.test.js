@@ -204,7 +204,7 @@ function loadIpfsManagerModule(options = {}) {
   const ipcMain = options.ipcMain || createIpcMainMock();
   const app = options.app || createAppMock({
     isPackaged: options.isPackaged ?? false,
-    userDataDir: options.userDataDir || '/tmp/freedom-user-data',
+    userDataDir: options.userDataDir || '/tmp/Bolt-user-data',
   });
   const windows = options.windows || [];
   const BrowserWindow = {
@@ -239,7 +239,7 @@ function loadIpfsManagerModule(options = {}) {
   const binaryName = process.platform === 'win32' ? 'ipfs.exe' : 'ipfs';
   const binPath = path.join(PROJECT_ROOT, 'ipfs-bin', `${platform}-${process.arch}`, binaryName);
   const dataDir = options.isPackaged
-    ? path.join(options.userDataDir || '/tmp/freedom-user-data', 'ipfs-data')
+    ? path.join(options.userDataDir || '/tmp/Bolt-user-data', 'ipfs-data')
     : DEV_IPFS_DATA_DIR;
   const configPath = path.join(dataDir, 'config');
   const lockPath = path.join(dataDir, 'repo.lock');

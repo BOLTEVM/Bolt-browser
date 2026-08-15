@@ -730,9 +730,9 @@ describe('url-utils', () => {
         );
       });
 
-      test('freedom:// URLs are unchanged', () => {
+      test('Bolt:// URLs are unchanged', () => {
         const ensNames = new Map([['somehash', 'example.eth']]);
-        expect(applyEnsNamePreservation('freedom://settings', ensNames)).toBe('freedom://settings');
+        expect(applyEnsNamePreservation('Bolt://settings', ensNames)).toBe('Bolt://settings');
       });
 
       test('already ENS URLs are unchanged', () => {

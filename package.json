@@ -1,16 +1,16 @@
 {
-  "name": "freedom-browser",
+  "name": "bolt-browser",
   "version": "0.6.2",
   "license": "MPL-2.0",
-  "description": "Freedom – A browser for the decentralized web, with Swarm, IPFS, and ENS as first-class protocols.",
+  "description": "Bolt Browser – A browser for the decentralized web, with Swarm, IPFS, and ENS as first-class protocols.",
   "author": {
-    "name": "Freedom Team",
-    "email": "browser@freedom.baby"
+    "name": "Bolt Team",
+    "email": "browser@bolt.build"
   },
-  "homepage": "https://freedombrowser.eth.limo/",
+  "homepage": "https://bolt.build/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/solardev-xyz/freedom-browser"
+    "url": "https://github.com/BOLTEVM/Bolt-browser"
   },
   "bugs": {
     "url": "https://github.com/solardev-xyz/freedom-browser/issues"
@@ -57,15 +57,15 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "build": {
-    "appId": "baby.freedom.browser",
-    "productName": "Freedom",
+    "appId": "com.bolt.browser",
+    "productName": "Bolt Browser",
     "afterPack": "./scripts/remove-locales.js",
     "directories": {
       "output": "dist"
     },
     "publish": {
       "provider": "generic",
-      "url": "https://freedom.baby/downloads"
+      "url": "https://bolt.build/downloads"
     },
     "mac": {
       "target": [
@@ -96,7 +96,7 @@
       ],
       "icon": "assets/icons",
       "category": "Network;WebBrowser",
-      "executableName": "freedom",
+      "executableName": "bolt",
       "mimeTypes": [
         "x-scheme-handler/ipfs",
         "x-scheme-handler/ipns",
@@ -188,6 +188,6 @@
     "micro-key-producer": "^0.8.2",
     "qrcode": "^1.5.4"
   },
-  "title": "Freedom",
-  "displayName": "Freedom"
+  "title": "Bolt Browser",
+  "displayName": "Bolt Browser"
 }

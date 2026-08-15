@@ -40,7 +40,7 @@ function initIpfs() {
     });
 
     // Configure IPFS for low-bandwidth embedded use
-    console.log('Configuring IPFS for Freedom (low-bandwidth mode)...');
+    console.log('Configuring IPFS for Bolt (low-bandwidth mode)...');
 
     const configPath = path.join(DATA_DIR, 'config');
     if (fs.existsSync(configPath)) {

@@ -195,7 +195,7 @@ function loadBeeManagerModule(options = {}) {
   const ipcMain = options.ipcMain || createIpcMainMock();
   const app = options.app || createAppMock({
     isPackaged: options.isPackaged ?? false,
-    userDataDir: options.userDataDir || '/tmp/freedom-user-data',
+    userDataDir: options.userDataDir || '/tmp/Bolt-user-data',
   });
   const windows = options.windows || [];
   const BrowserWindow = {
@@ -236,7 +236,7 @@ function loadBeeManagerModule(options = {}) {
   const binaryName = process.platform === 'win32' ? 'bee.exe' : 'bee';
   const beeBinPath = path.join(PROJECT_ROOT, 'bee-bin', `${platform}-${process.arch}`, binaryName);
   const dataDir = options.isPackaged
-    ? path.join(options.userDataDir || '/tmp/freedom-user-data', 'bee-data')
+    ? path.join(options.userDataDir || '/tmp/Bolt-user-data', 'bee-data')
     : DEV_BEE_DATA_DIR;
   const configPath = path.join(dataDir, 'config.yaml');
   const keysPath = path.join(dataDir, 'keys');

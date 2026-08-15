@@ -183,7 +183,7 @@ const loadNavigationModule = async (options = {}) => {
     isHistoryRecordable: jest.fn((displayUrl, internalUrl) => {
       return (
         Boolean(displayUrl) &&
-        !displayUrl.startsWith('freedom://') &&
+        !displayUrl.startsWith('Bolt://') &&
         !displayUrl.startsWith('view-source:') &&
         !internalUrl.includes('/error.html')
       );

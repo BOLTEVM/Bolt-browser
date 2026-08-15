@@ -21,7 +21,7 @@ const isBookmarkableUrl = (url) => {
     url.startsWith('ens://') ||
     url.startsWith('http://') ||
     url.startsWith('https://') ||
-    url.startsWith('freedom://')
+    url.startsWith('Bolt://')
   );
 };
 

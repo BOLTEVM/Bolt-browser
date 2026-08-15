@@ -39,7 +39,7 @@ function initRadicle() {
     }
 
     console.log('Creating Radicle identity...');
-    execSync(`"${radPath}" auth --alias FreedomBrowser`, {
+    execSync(`"${radPath}" auth --alias BoltBrowser`, {
       env: {
         ...process.env,
         RAD_HOME: DATA_DIR,

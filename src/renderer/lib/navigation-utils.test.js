@@ -46,7 +46,7 @@ describe('navigation-utils', () => {
     test('hides icons for internal pages and gates radicle on settings', async () => {
       const { resolveProtocolIconType } = await loadNavigationUtils();
 
-      expect(resolveProtocolIconType({ value: 'freedom://history' })).toBeNull();
+      expect(resolveProtocolIconType({ value: 'Bolt://history' })).toBeNull();
       expect(resolveProtocolIconType({ value: 'rad://rid' })).toBe('http');
       expect(
         resolveProtocolIconType({

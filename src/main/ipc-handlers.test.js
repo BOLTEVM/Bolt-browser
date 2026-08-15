@@ -204,8 +204,8 @@ describe('ipc-handlers', () => {
     });
 
     ctx.ipcMain.emit(IPC.WINDOW_SET_TITLE, event, '  Example Title  ');
-    expect(win.setTitle).toHaveBeenCalledWith('Example Title - Freedom');
-    expect(onSetTitle).toHaveBeenCalledWith('Example Title - Freedom');
+    expect(win.setTitle).toHaveBeenCalledWith('Example Title - Bolt');
+    expect(onSetTitle).toHaveBeenCalledWith('Example Title - Bolt');
 
     ctx.ipcMain.emit(IPC.WINDOW_CLOSE, event);
     ctx.ipcMain.emit(IPC.WINDOW_MINIMIZE, event);

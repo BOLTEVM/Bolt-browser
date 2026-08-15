@@ -3,7 +3,7 @@
  *
  * Postage batch operations via bee-js: list, cost estimation, and purchase.
  * All bee-js types stay behind this boundary — the renderer receives
- * normalized Freedom batch model objects.
+ * normalized Bolt batch model objects.
  */
 
 const { ipcMain } = require('electron');
@@ -20,7 +20,7 @@ function isPositiveNumber(value) {
 const batchIdToHex = toHex;
 
 /**
- * Normalize a bee-js PostageBatch to the Freedom batch model.
+ * Normalize a bee-js PostageBatch to the Bolt batch model.
  * Uses public bee-js class methods (toBytes, toSeconds) rather than
  * private properties.
  */
@@ -73,7 +73,7 @@ function normalizeBatch(batch) {
 }
 
 /**
- * List all postage batches, normalized to the Freedom batch model.
+ * List all postage batches, normalized to the Bolt batch model.
  */
 async function getStamps() {
   const bee = getBee();

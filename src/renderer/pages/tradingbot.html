@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:;"
+    />
+    <title>Monad LeverUp Bot Dashboard</title>
+    <style>
+      :root {
+        --bg: #0b0e14;
+        --bg-elev: #121721;
+        --bg-card: #1b2333;
+        --border: #2b354a;
+        --border-strong: #3f4e6e;
+        --text: #f0f3f8;
+        --text-muted: #9aa8c6;
+        --text-subtle: #6c7a9c;
+        --accent: #9333ea; /* Monad Purple style */
+        --accent-glow: rgba(147, 51, 234, 0.15);
+        --danger: #ef4444;
+        --success: #22c55e;
+        --warn: #eab308;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 24px;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      /* Header styling */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+
+      .title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--accent);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+        color: white;
+        box-shadow: 0 0 15px var(--accent);
+      }
+
+      .title {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .status-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-subtle);
+      }
+
+      .status-pill.running .status-dot {
+        background: var(--success);
+        box-shadow: 0 0 10px var(--success);
+      }
+
+      .status-pill.running {
+        color: var(--success);
+        background: rgba(34, 197, 94, 0.1);
+        border-color: rgba(34, 197, 94, 0.2);
+      }
+
+      /* Grid Layout */
+      .grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      /* Controls Panel */
+      .control-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .control-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 8px;
+      }
+
+      input[type="number"], select {
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        padding: 10px 14px;
+        font-size: 14px;
+        width: 100%;
+        outline: none;
+      }
+
+      input[type="number"]:focus, select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 8px var(--accent-glow);
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+        border: none;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 4px 12px var(--accent-glow);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .btn-stop {
+        background: var(--danger);
+        color: white;
+      }
+
+      .btn-stop:hover {
+        opacity: 0.9;
+      }
+
+      /* Stats display */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .stat-item {
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+
+      .stat-desc {
+        font-size: 11px;
+        color: var(--text-subtle);
+        text-transform: uppercase;
+      }
+
+      /* Position Table */
+      .table-wrapper {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+
+      th {
+        padding: 12px 16px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-subtle);
+        border-bottom: 1px solid var(--border);
+      }
+
+      td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        font-variant-numeric: tabular-nums;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      .pnl-pos {
+        color: var(--success);
+        font-weight: 600;
+      }
+
+      .pnl-neg {
+        color: var(--danger);
+        font-weight: 600;
+      }
+
+      .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .badge-long {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--success);
+      }
+
+      .badge-short {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+      }
+
+      .simulated-tag {
+        font-size: 10px;
+        color: var(--warn);
+        background: rgba(234, 179, 8, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(234, 179, 8, 0.2);
+        margin-left: 8px;
+      }
+
+      .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(234, 179, 8, 0.15);
+        border: 1px solid rgba(234, 179, 8, 0.3);
+        color: var(--warn);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="title-group">
+          <div class="logo-icon">L</div>
+          <div>
+            <h1 class="title">Agentic Trading Bot (blever)</h1>
+            <p style="font-size: 11px; color: var(--text-subtle);">LeverUp Integration · Monad Testnet</p>
+          </div>
+        </div>
+        <div class="status-pill" id="bot-status-pill">
+          <span class="status-dot"></span>
+          <span id="bot-status-text">Stopped</span>
+        </div>
+      </div>
+
+      <!-- Alert if locked -->
+      <div class="alert" id="vault-locked-alert">
+        <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span>
+          <strong>Boltows Wallet Vault Locked:</strong> Trades will execute in <strong>Simulation mode</strong>. Unlock your wallet to authorize live perpetual positions on Monad.
+        </span>
+      </div>
+
+      <!-- Main Grid -->
+      <div class="grid">
+        <!-- Left Side: Stats and Positions -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <!-- Stats Cards -->
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-desc">Collateral Balance</span>
+              <div class="stat-value" id="stat-collateral">100.00 USDC</div>
+            </div>
+            <div class="stat-item">
+              <span class="stat-desc">Oracle BTC Price</span>
+              <div class="stat-value" id="stat-btc-price">$98,500.00</div>
+            </div>
+            <div class="stat-item">
+              <span class="stat-desc">Active Positions</span>
+              <div class="stat-value" id="stat-positions">0</div>
+            </div>
+          </div>
+
+          <!-- Active Positions Card -->
+          <div class="card">
+            <h2 class="card-title">Active Leveraged Positions</h2>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Market</th>
+                    <th>Side</th>
+                    <th>Leverage</th>
+                    <th>Entry Price</th>
+                    <th>Mark Price</th>
+                    <th>Margin Ratio</th>
+                    <th>Unrealized PnL</th>
+                  </tr>
+                </thead>
+                <tbody id="positions-table-body">
+                  <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-subtle);">No active positions. Strategy evaluating markets...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Trade History Card -->
+          <div class="card">
+            <h2 class="card-title">Recent Trade Performance History</h2>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Direction</th>
+                    <th>Size</th>
+                    <th>Entry / Exit</th>
+                    <th>Realized Pnl</th>
+                    <th>Resolution</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-subtle);">No historical trades recorded yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: Config Controls -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="card">
+            <h2 class="card-title">Orchestration Control Panel</h2>
+            
+            <div class="control-row">
+              <span class="control-label">Bot Execution State</span>
+              <button class="btn btn-primary" id="toggle-bot-btn">Start Trading Bot</button>
+            </div>
+
+            <div class="control-row">
+              <span class="control-label">Scalp Leverage Target</span>
+              <select id="leverage-select">
+                <option value="20">20x Leverage (Safe Breakout)</option>
+                <option value="50">50x Leverage (Medium Volatility)</option>
+                <option value="100" selected>100x Leverage (Ultra-Scalp Momentum)</option>
+                <option value="500">500x Leverage (Extreme Scalp)</option>
+                <option value="1000">1000x Leverage (DeFi Maximum Leverage)</option>
+              </select>
+            </div>
+
+            <div class="control-row">
+              <span class="control-label">Max Collateral Limit (USDC)</span>
+              <input type="number" id="collateral-input" value="100" min="10" max="1000" />
+            </div>
+
+            <div style="font-size: 11px; color: var(--text-subtle); line-height: 1.4;">
+              * High-leverage execution (>100x) employs isolated risk accounts and strict 0.4% trailing stops. The <strong>Hard Liquidation Guard</strong> enforces safety closure before critical margin exhaustion on Monad L1.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const tradingBot = window.tradingBot;
+
+      const elements = {
+        statusPill: document.getElementById('bot-status-pill'),
+        statusText: document.getElementById('bot-status-text'),
+        toggleBtn: document.getElementById('toggle-bot-btn'),
+        vaultAlert: document.getElementById('vault-locked-alert'),
+        statCollateral: document.getElementById('stat-collateral'),
+        statBtcPrice: document.getElementById('stat-btc-price'),
+        statPositions: document.getElementById('stat-positions'),
+        positionsBody: document.getElementById('positions-table-body'),
+        historyBody: document.getElementById('history-table-body'),
+        leverageSelect: document.getElementById('leverage-select'),
+        collateralInput: document.getElementById('collateral-input'),
+      };
+
+      let activeConfig = {
+        leverage: 100,
+        collateral: 100
+      };
+
+      async function refresh() {
+        try {
+          const status = await tradingBot.getStatus();
+          
+          // Update status banner
+          if (status.isRunning) {
+            elements.statusPill.classList.add('running');
+            elements.statusText.textContent = 'Active Running';
+            elements.toggleBtn.textContent = 'Stop Trading Bot';
+            elements.toggleBtn.className = 'btn btn-stop';
+          } else {
+            elements.statusPill.classList.remove('running');
+            elements.statusText.textContent = 'Stopped';
+            elements.toggleBtn.textContent = 'Start Trading Bot';
+            elements.toggleBtn.className = 'btn btn-primary';
+          }
+
+          // Update Vault lock alert
+          if (status.isVaultUnlocked) {
+            elements.vaultAlert.style.display = 'none';
+          } else {
+            elements.vaultAlert.style.display = 'flex';
+          }
+
+          // Update Stats
+          elements.statCollateral.textContent = status.allocatedCollateral.toFixed(2) + ' USDC';
+          elements.statBtcPrice.textContent = '$' + status.lastBtcPrice.toLocaleString();
+          elements.statPositions.textContent = status.activePositions.length;
+
+          // Render active positions
+          if (status.activePositions.length === 0) {
+            elements.positionsBody.innerHTML = `
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-subtle);">No active positions. Strategy evaluating markets...</td>
+              </tr>
+            `;
+          } else {
+            elements.positionsBody.innerHTML = status.activePositions.map(pos => {
+              const pnlClass = pos.pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+              const pnlSign = pos.pnl >= 0 ? '+' : '';
+              return `
+                <tr>
+                  <td><strong>BTC/USDC</strong>${pos.isSimulated ? '<span class="simulated-tag">SIM</span>' : ''}</td>
+                  <td><span class="badge badge-${pos.side.toLowerCase()}">${pos.side}</span></td>
+                  <td>${pos.leverage}x</td>
+                  <td>$${pos.entryPrice.toLocaleString()}</td>
+                  <td>$${pos.currentPrice.toLocaleString()}</td>
+                  <td>${pos.marginRatio}%</td>
+                  <td class="${pnlClass}">${pnlSign}$${pos.pnl.toFixed(2)}</td>
+                </tr>
+              `;
+            }).join('');
+          }
+
+          // Render history
+          if (status.tradeHistory.length === 0) {
+            elements.historyBody.innerHTML = `
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-subtle);">No historical trades recorded yet.</td>
+              </tr>
+            `;
+          } else {
+            elements.historyBody.innerHTML = status.tradeHistory.reverse().map(trade => {
+              const pnlClass = trade.pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+              const pnlSign = trade.pnl >= 0 ? '+' : '';
+              const time = new Date(trade.timestamp).toLocaleTimeString();
+              return `
+                <tr>
+                  <td>${time}</td>
+                  <td><span class="badge badge-${trade.side.toLowerCase()}">${trade.side}</span></td>
+                  <td>$${(trade.collateral * trade.leverage).toFixed(2)}</td>
+                  <td>$${trade.entryPrice.toLocaleString()} &rarr; $${trade.exitPrice.toLocaleString()}</td>
+                  <td class="${pnlClass}">${pnlSign}$${trade.pnl.toFixed(2)}</td>
+                  <td><span style="font-size: 11px; font-weight:600; color: var(--text-muted);">${trade.reason}</span></td>
+                </tr>
+              `;
+            }).join('');
+          }
+        } catch (err) {
+          console.error('Failed to query trading bot status:', err);
+        }
+      }
+
+      // Event Listeners
+      elements.toggleBtn.addEventListener('click', async () => {
+        const status = await tradingBot.getStatus();
+        if (status.isRunning) {
+          await tradingBot.stop();
+        } else {
+          const config = {
+            leverage: parseInt(elements.leverageSelect.value),
+            collateral: parseFloat(elements.collateralInput.value)
+          };
+          await tradingBot.start(config);
+        }
+        refresh();
+      });
+
+      const handleConfigChange = async () => {
+        const config = {
+          leverage: parseInt(elements.leverageSelect.value),
+          collateral: parseFloat(elements.collateralInput.value)
+        };
+        await tradingBot.updateConfig(config);
+        refresh();
+      };
+
+      elements.leverageSelect.addEventListener('change', handleConfigChange);
+      elements.collateralInput.addEventListener('change', handleConfigChange);
+
+      // Start refresh tick loop (every 1 second for low-latency feedback)
+      setInterval(refresh, 1000);
+      refresh();
+    </script>
+  </body>
+</html>

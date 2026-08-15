@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Freedom will be documented in this file.
+All notable changes to Bolt will be documented in this file.
 
 ## [Unreleased]
 
@@ -28,7 +28,7 @@ All notable changes to Freedom will be documented in this file.
   - `rad://` URL handling across navigation and rewriting
   - Bundled Radicle node lifecycle management and packaging support
   - Integrated repo browser page and GitHub-to-Radicle import bridge
-  - Automatic seeding of Freedom's canonical Radicle repository when running the bundled node
+  - Automatic seeding of Bolt's canonical Radicle repository when running the bundled node
 - Swarm encrypted reference support in navigation and URL rewriting (including 64- and 128-character hex references)
 
 ### Fixed
@@ -70,7 +70,7 @@ First public open-source release.
 
 - Add Content Security Policy headers to all internal HTML pages
 - Validate IPFS CID format, IPNS names, and block malformed `bzz://` requests
-- Harden webview preferences, restrict `freedomAPI` to internal pages only, tighten local API CORS and IPC base URLs, redact logged URLs
+- Harden webview preferences, restrict `BoltAPI` to internal pages only, tighten local API CORS and IPC base URLs, redact logged URLs
 - Resolve all npm audit vulnerabilities (11 total: 10 high, 1 moderate)
 - Updated dependencies: Electron 39→40, electron-builder 26.0→26.7, better-sqlite3 12.5→12.6, electron-updater 6.6→6.7
 

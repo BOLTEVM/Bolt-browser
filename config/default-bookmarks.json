@@ -26,5 +26,13 @@
   {
     "label": "Radicle Heartwood",
     "target": "rad://z3gqcJUoA1n9HaHKufZs5FCSGazv5"
+  },
+  {
+    "label": "🔥 locallitcoins [trade whats lit]",
+    "target": "freenet://locallitcoins"
+  },
+  {
+    "label": "Freenet River Chat",
+    "target": "freenet://river"
   }
 ]

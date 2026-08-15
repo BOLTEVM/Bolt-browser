@@ -1,8 +1,8 @@
-// Publish on Swarm — freedom://publish
+// Publish on Swarm — Bolt://publish
 //
-// Uses freedomAPI.swarm.* (internal-only, guarded by webview preload)
+// Uses BoltAPI.swarm.* (internal-only, guarded by webview preload)
 
-const swarm = window.freedomAPI?.swarm;
+const swarm = window.BoltAPI?.swarm;
 
 const PROGRESS_POLL_MS = 2000;
 const PROGRESS_TIMEOUT_MS = 600000; // 10 minutes max poll
@@ -58,14 +58,14 @@ function init() {
   copyRefBtn?.addEventListener('click', () => copyToClipboard(lastResult?.reference));
   openUrlBtn?.addEventListener('click', () => {
     if (lastResult?.bzzUrl) {
-      window.freedomAPI?.openInNewTab?.(lastResult.bzzUrl);
+      window.BoltAPI?.openInNewTab?.(lastResult.bzzUrl);
     }
   });
 
   resultUrl?.addEventListener('click', (e) => {
     e.preventDefault();
     if (lastResult?.bzzUrl) {
-      window.freedomAPI?.openInNewTab?.(lastResult.bzzUrl);
+      window.BoltAPI?.openInNewTab?.(lastResult.bzzUrl);
     }
   });
 
@@ -291,8 +291,8 @@ function showError(message) {
 
 async function copyToClipboard(text) {
   if (!text) return;
-  if (window.freedomAPI?.copyText) {
-    await window.freedomAPI.copyText(text);
+  if (window.BoltAPI?.copyText) {
+    await window.BoltAPI.copyText(text);
   }
 }
 
@@ -354,7 +354,7 @@ function renderHistory(entries) {
       urlEl.textContent = entry.bzzUrl;
       urlEl.addEventListener('click', (e) => {
         e.preventDefault();
-        window.freedomAPI?.openInNewTab?.(entry.bzzUrl);
+        window.BoltAPI?.openInNewTab?.(entry.bzzUrl);
       });
       item.appendChild(urlEl);
     }

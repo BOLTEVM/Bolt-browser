@@ -1,6 +1,6 @@
 const log = require('./logger');
-const { activeBzzBases, activeIpfsBases, activeRadBases } = require('./state');
-const { getBeeApiUrl, getIpfsGatewayUrl, getRadicleApiUrl } = require('./service-registry');
+const { activeBzzBases, activeIpfsBases, activeRadBases, activeDwebBases, activeDswarmBases, activeFreenetBases } = require('./state');
+const { getBeeApiUrl, getIpfsGatewayUrl, getRadicleApiUrl, getDSwarmApiUrl, getFreenetGatewayUrl } = require('./service-registry');
 const { loadSettings } = require('./settings-store');
 const { URL } = require('url');
 
@@ -15,7 +15,11 @@ const sanitizeUrlForLog = (rawUrl) => {
       parsed.protocol === 'bzz:' ||
       parsed.protocol === 'ipfs:' ||
       parsed.protocol === 'ipns:' ||
-      parsed.protocol === 'freedom:'
+      parsed.protocol === 'Bolt:' ||
+      parsed.protocol === 'dweb:' ||
+      parsed.protocol === 'hyper:' ||
+      parsed.protocol === 'dswarm:' ||
+      parsed.protocol === 'freenet:'
     ) {
       return `${parsed.protocol}//<redacted>`;
     }
@@ -25,7 +29,11 @@ const sanitizeUrlForLog = (rawUrl) => {
       rawUrl.startsWith('bzz://') ||
       rawUrl.startsWith('ipfs://') ||
       rawUrl.startsWith('ipns://') ||
-      rawUrl.startsWith('freedom://')
+      rawUrl.startsWith('Bolt://') ||
+      rawUrl.startsWith('dweb://') ||
+      rawUrl.startsWith('hyper://') ||
+      rawUrl.startsWith('dswarm://') ||
+      rawUrl.startsWith('freenet://')
     ) {
       return `${rawUrl.split('://')[0]}://<redacted>`;
     }
@@ -135,6 +143,65 @@ function convertProtocolUrl(url) {
     return { converted: true, url: gatewayUrl };
   }
 
+  // Handle dweb:// and hyper:// protocols
+  if (url.startsWith('dweb://') || url.startsWith('hyper://')) {
+    const scheme = url.startsWith('dweb://') ? 'dweb://' : 'hyper://';
+    const afterScheme = url.slice(scheme.length).replace(/^\/+/, '');
+    if (!afterScheme) {
+      return { converted: false, url };
+    }
+    const key = afterScheme.split(/[/?#]/)[0];
+    const pathPart = afterScheme.slice(key.length);
+    // Validate 64-char hex or 52-char z-base32
+    if (!/^[a-fA-F0-9]{64}$/.test(key) && !/^[a-z0-9]{52}$/i.test(key)) {
+      log.warn(`[rewrite] Blocked invalid DWeb/Hyper key: ${key}`);
+      return { converted: false, url };
+    }
+    // Return formatted dweb gateway target
+    return { converted: true, url: `dweb://${key}${pathPart || '/'}` };
+  }
+
+  // Handle dswarm:// protocol
+  if (url.startsWith('dswarm://')) {
+    const afterScheme = url.slice(9).replace(/^\/+/, '');
+    if (!afterScheme) {
+      return { converted: false, url };
+    }
+    const topic = afterScheme.split(/[/?#]/)[0];
+    if (!/^[a-zA-Z0-9._-]{1,64}$/.test(topic)) {
+      log.warn(`[rewrite] Blocked invalid DSwarm topic: ${topic}`);
+      return { converted: false, url };
+    }
+    return { converted: true, url: `dswarm://${afterScheme}` };
+  }
+
+  // Handle freenet:// protocol
+  if (url.startsWith('freenet://')) {
+    const afterScheme = url.slice(10).replace(/^\/+/, '');
+    if (!afterScheme) {
+      return { converted: false, url };
+    }
+
+    // Check for locallitcoins shortcut alias
+    if (afterScheme === 'locallitcoins' || afterScheme.startsWith('locallitcoins/')) {
+      const subPath = afterScheme.slice('locallitcoins'.length);
+      return { converted: true, url: `http://127.0.0.1:3000${subPath || '/'}` };
+    }
+
+    const key = afterScheme.split(/[/?#]/)[0];
+    const pathPart = afterScheme.slice(key.length);
+
+    // Validate key: Base58 or valid contract alias
+    if (!/^[a-zA-Z0-9_-]{3,64}$/.test(key)) {
+      log.warn(`[rewrite] Blocked invalid Freenet key: ${key}`);
+      return { converted: false, url };
+    }
+
+    const freenetGatewayUrl = getFreenetGatewayUrl();
+    const gatewayUrl = `${freenetGatewayUrl}/contract/web/${key}${pathPart || '/'}`;
+    return { converted: true, url: gatewayUrl };
+  }
+
   return { converted: false, url };
 }
 
@@ -170,6 +237,9 @@ function shouldRewriteRequest(requestUrl, baseUrl) {
   }
   if (normalizedPath.startsWith('/api/v1/repos/')) {
     return { shouldRewrite: false, reason: 'already_rad_path' };
+  }
+  if (normalizedPath.startsWith('/contract/web/')) {
+    return { shouldRewrite: false, reason: 'already_freenet_path' };
   }
 
   // Don't rewrite cross-origin requests
@@ -299,6 +369,29 @@ function registerRequestRewriter(targetSession) {
     // No rewrite needed
     callback({});
   });
+
+  if (targetSession.webRequest.onHeadersReceived) {
+    targetSession.webRequest.onHeadersReceived((details, callback) => {
+      const settings = loadSettings();
+      if (settings.enableBoltowsExtension && details.responseHeaders) {
+        const cspKey = Object.keys(details.responseHeaders).find(
+          (k) => k.toLowerCase() === 'content-security-policy'
+        );
+        if (cspKey) {
+          let csp = details.responseHeaders[cspKey][0];
+          // Append chrome-extension to script-src and connect-src
+          if (csp.includes('script-src')) {
+            csp = csp.replace('script-src', "script-src chrome-extension://*");
+          }
+          if (csp.includes('connect-src')) {
+            csp = csp.replace('connect-src', "connect-src chrome-extension://*");
+          }
+          details.responseHeaders[cspKey] = [csp];
+        }
+      }
+      callback({ responseHeaders: details.responseHeaders });
+    });
+  }
 }
 
 module.exports = {

@@ -3,7 +3,7 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-let currentWindowTitle = 'Freedom';
+let currentWindowTitle = 'Bolt';
 
 // Track all main browser windows we create
 const mainWindows = new Set();
@@ -30,7 +30,7 @@ function createMainWindow(initialUrl = null) {
   const window = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'Freedom',
+    title: 'Bolt',
     backgroundColor: '#1f2020',
     // Set icon for Linux/Windows (macOS uses the app bundle icon)
     // Also hide the menu bar on Windows/Linux

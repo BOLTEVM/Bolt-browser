@@ -283,7 +283,7 @@ function setupApplicationMenu() {
           click: () => {
             const win = getTargetWindow();
             if (win) {
-              win.webContents.send('tab:new-with-url', 'freedom://history');
+              win.webContents.send('tab:new-with-url', 'Bolt://history');
             }
           },
         },

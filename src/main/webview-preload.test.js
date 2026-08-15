@@ -113,7 +113,7 @@ describe('webview-preload', () => {
     jest.restoreAllMocks();
   });
 
-  test('exposes guarded freedomAPI methods for allowed internal pages', async () => {
+  test('exposes guarded BoltAPI methods for allowed internal pages', async () => {
     const { contextBridge, exposures, ipcRenderer } = loadWebviewPreloadModule({
       location: {
         href: 'file:///app/pages/error.html?url=https%3A%2F%2Fexample.com',
@@ -123,7 +123,7 @@ describe('webview-preload', () => {
     });
 
     expect(contextBridge.exposeInMainWorld).toHaveBeenCalledWith(
-      'freedomAPI',
+      'BoltAPI',
       expect.any(Object)
     );
     expect(ipcRenderer.sendSync).toHaveBeenCalledWith(IPC.GET_INTERNAL_PAGES);
@@ -150,18 +150,18 @@ describe('webview-preload', () => {
 
     for (const [method, args, channel, expectedArgs] of invokeCases) {
       ipcRenderer.invoke.mockClear();
-      await exposures.freedomAPI[method](...args);
+      await exposures.BoltAPI[method](...args);
       expect(ipcRenderer.invoke).toHaveBeenCalledWith(channel, ...expectedArgs);
     }
 
-    expect(consoleLogSpy).toHaveBeenCalledWith('[webview-preload] Loaded (freedomAPI + context menu + ethereum + swarm provider)');
+    expect(consoleLogSpy).toHaveBeenCalledWith('[webview-preload] Loaded (BoltAPI + context menu + ethereum + swarm provider)');
   });
 
   test('onSettingsUpdated forwards the broadcast and unsubscribes on pagehide', () => {
     const { exposures, ipcRenderer } = loadWebviewPreloadModule();
 
     const callback = jest.fn();
-    const unsubscribe = exposures.freedomAPI.onSettingsUpdated(callback);
+    const unsubscribe = exposures.BoltAPI.onSettingsUpdated(callback);
     expect(typeof unsubscribe).toBe('function');
 
     ipcRenderer.emit('settings:updated', { theme: 'dark' });
@@ -188,16 +188,16 @@ describe('webview-preload', () => {
     });
 
     const callback = jest.fn();
-    const unsubscribe = exposures.freedomAPI.onSettingsUpdated(callback);
+    const unsubscribe = exposures.BoltAPI.onSettingsUpdated(callback);
     expect(typeof unsubscribe).toBe('function');
     ipcRenderer.emit('settings:updated', { theme: 'dark' });
     expect(callback).not.toHaveBeenCalled();
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[freedomAPI] blocked subscription "onSettingsUpdated" on non-internal page'
+      '[BoltAPI] blocked subscription "onSettingsUpdated" on non-internal page'
     );
   });
 
-  test('blocks freedomAPI access on non-internal pages', async () => {
+  test('blocks BoltAPI access on non-internal pages', async () => {
     const { exposures, ipcRenderer } = loadWebviewPreloadModule({
       location: {
         href: 'https://example.com/articles/1',
@@ -206,12 +206,12 @@ describe('webview-preload', () => {
       },
     });
 
-    await expect(exposures.freedomAPI.getHistory({ limit: 5 })).rejects.toThrow(
-      'freedomAPI is only available on internal pages'
+    await expect(exposures.BoltAPI.getHistory({ limit: 5 })).rejects.toThrow(
+      'BoltAPI is only available on internal pages'
     );
     expect(ipcRenderer.invoke).not.toHaveBeenCalled();
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[freedomAPI] blocked "getHistory" on non-internal page: https://example.com/articles/1'
+      '[BoltAPI] blocked "getHistory" on non-internal page: https://example.com/articles/1'
     );
   });
 

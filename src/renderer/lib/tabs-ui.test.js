@@ -3,7 +3,7 @@ const { createDocument, createElement } = require('../../../test/helpers/fake-do
 const originalWindow = global.window;
 const originalDocument = global.document;
 
-const HOME_URL = 'freedom://home';
+const HOME_URL = 'Bolt://home';
 
 const flushMicrotasks = async () => {
   await Promise.resolve();
@@ -265,7 +265,7 @@ describe('tabs ui behavior', () => {
     await mod.updateTabFavicon(firstTab.id, '');
     expect(firstTab.favicon).toBeNull();
 
-    await mod.updateTabFavicon(firstTab.id, 'freedom://history');
+    await mod.updateTabFavicon(firstTab.id, 'Bolt://history');
     expect(firstTab.favicon).toBeNull();
 
     await mod.updateTabFavicon(firstTab.id, 'https://favicon.example');

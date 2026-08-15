@@ -151,7 +151,7 @@ function fetchGitHubRepoInfo(owner, repo) {
   return new Promise((resolve) => {
     const req = https.get(
       `https://api.github.com/repos/${owner}/${repo}`,
-      { headers: { 'User-Agent': 'Freedom-Browser' }, timeout: 5000 },
+      { headers: { 'User-Agent': 'Bolt-Browser' }, timeout: 5000 },
       (res) => {
         if (res.statusCode !== 200) {
           res.resume();
@@ -182,7 +182,7 @@ function fetchGitHubHeadSha(owner, repo, branch) {
   return new Promise((resolve) => {
     const req = https.get(
       `https://api.github.com/repos/${owner}/${repo}/commits/${encodeURIComponent(branch)}`,
-      { headers: { 'User-Agent': 'Freedom-Browser' }, timeout: 5000 },
+      { headers: { 'User-Agent': 'Bolt-Browser' }, timeout: 5000 },
       (res) => {
         if (res.statusCode !== 200) {
           res.resume();
@@ -508,7 +508,7 @@ function fetchGitHubDescription(owner, repo) {
   return new Promise((resolve) => {
     const req = https.get(
       `https://api.github.com/repos/${owner}/${repo}`,
-      { headers: { 'User-Agent': 'Freedom-Browser' }, timeout: 5000 },
+      { headers: { 'User-Agent': 'Bolt-Browser' }, timeout: 5000 },
       (res) => {
         let data = '';
         res.on('data', (chunk) => { data += chunk; });
@@ -586,7 +586,7 @@ async function importGitHubRepo(url, sender) {
 
     // Step 4: Clone
     sendProgress({ step: 'cloning', message: `Cloning ${validation.owner}/${validation.repo}...` });
-    clonePath = fs.mkdtempSync(path.join(os.tmpdir(), 'freedom-bridge-'));
+    clonePath = fs.mkdtempSync(path.join(os.tmpdir(), 'Bolt-bridge-'));
     activeTempDirs.add(clonePath);
 
     const repoDir = path.join(clonePath, validation.repo);

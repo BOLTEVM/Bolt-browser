@@ -101,10 +101,10 @@ function createIpfsIdentity(privateKey, publicKey) {
  *
  * @param {Uint8Array} privateKey - 32-byte Ed25519 private key
  * @param {Uint8Array} publicKey - 32-byte Ed25519 public key
- * @param {string} comment - Comment for the SSH key (e.g., "FreedomBrowser")
+ * @param {string} comment - Comment for the SSH key (e.g., "BoltBrowser")
  * @returns {Object} { privateKeyFile, publicKeyFile, did, nodeId }
  */
-function createRadicleIdentity(privateKey, publicKey, comment = 'FreedomBrowser') {
+function createRadicleIdentity(privateKey, publicKey, comment = 'BoltBrowser') {
   const sshPrivate = createOpenSSHPrivateKey(privateKey, publicKey, comment);
   const sshPublic = createOpenSSHPublicKey(publicKey, comment);
 

@@ -68,7 +68,7 @@ async function enableQuickUnlock(password) {
 
   try {
     // Prompt Touch ID to authorize storing the credential
-    await systemPreferences.promptTouchID('enable Touch ID unlock for Freedom Browser');
+    await systemPreferences.promptTouchID('enable Touch ID unlock for Bolt Browser');
 
     // Encrypt the password using OS secure storage
     const encrypted = safeStorage.encryptString(password);
@@ -106,7 +106,7 @@ async function unlockWithTouchId() {
 
   try {
     // Prompt for Touch ID
-    await systemPreferences.promptTouchID('unlock Freedom Browser');
+    await systemPreferences.promptTouchID('unlock Bolt Browser');
 
     // Read and decrypt the credential
     const credPath = getCredentialPath();
